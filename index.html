@@ -1,0 +1,830 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BORAMAP · 按感觉找 BTS 的歌</title><meta name="description" content="按感觉找 BTS 的歌：在情绪地图上点一下，找到最接近的歌；挑 7 首做一张自己的专辑封面；按时间线翻看 13 年的专辑。">
+<meta property="og:title" content="BORAMAP · 按感觉找 BTS 的歌"><meta property="og:description" content="按感觉找 BTS 的歌：在情绪地图上点一下，找到最接近的歌；挑 7 首做一张自己的专辑封面；按时间线翻看 13 年的专辑。"><meta property="og:type" content="website"><meta property="og:image" content="https://pilicat913.github.io/boramap/og.jpg"><meta name="twitter:card" content="summary_large_image">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="icon" href="/favicon.ico" sizes="any"><meta name="apple-mobile-web-app-title" content="BORAMAP"><link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='9' fill='none' stroke='%231C1B18' stroke-width='1.4'/%3E%3Ccircle cx='10' cy='10' r='5' fill='none' stroke='%231C1B18' stroke-width='1.4'/%3E%3Ccircle cx='13' cy='7' r='2' fill='%23C2442A'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@400;600&display=swap">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+/* Layout: slim header, then a working stage (map / network / route) beside a 360px reading panel; stacks on phones */
+:root{
+  --paper:#EEE9DF; --panel:#F4F0E8; --sunk:#EAE4D8; --ink:#1C1B18; --ink2:#55524A; --rule:rgba(28,27,24,.14); --warn:#9A3518;
+  --f-disp:'Instrument Serif','Noto Sans SC',serif; --f-ui:'Hanken Grotesk','Noto Sans SC',sans-serif; --f-mono:'IBM Plex Mono','Noto Sans SC',monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-ui);font-size:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,select{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.mono{font-family:var(--f-mono)}
+.serif{font-family:var(--f-disp);font-weight:400}
+.lab{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;color:var(--ink2);margin:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.app{height:100%;display:flex;flex-direction:column}
+header{flex:none;min-height:56px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand b{font-family:var(--f-mono);font-weight:500;letter-spacing:.24em;font-size:14px}
+.tag{font-size:12px;color:var(--ink2)}
+nav.tabs{display:flex;margin:0 auto}
+nav.tabs button{height:56px;padding:0 16px;font-size:14px;color:var(--ink2)}
+nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:600;box-shadow:inset 0 -2px 0 var(--ink)}
+.demo{font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;color:var(--warn);border:1px solid var(--warn);padding:4px 8px;white-space:nowrap}
+main{flex:1;min-height:0;display:flex}
+.stage{flex:1;min-width:0;display:flex;flex-direction:column;padding:0 24px 20px 0}
+.panel{flex:none;width:360px;background:var(--panel);border-left:1px solid var(--rule);overflow:auto;display:flex;flex-direction:column;margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)))}
+.panel>*{flex-shrink:0}
+.bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 0 14px}
+.btn{text-align:left;display:inline-flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border:1px solid var(--ink);font-size:14px;font-weight:600;text-decoration:none}
+.btn.p{background:var(--ink);color:var(--paper)}
+.btn.q{border-color:var(--rule);font-weight:500}
+.btn.big{width:100%;padding:15px 18px;font-size:15px}
+.btn .sub{display:block;font-size:12px;font-weight:400;opacity:.75;margin-top:2px}
+.sec{padding:22px 26px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:10px}
+.sec:first-child{border-top:0}
+.row{display:grid;grid-template-columns:12px minmax(0,1fr) 80px 36px;gap:10px;align-items:center;padding:9px 0;border-top:1px solid rgba(28,27,24,.09);font-size:14px;text-align:left;width:100%}
+.row:hover{background:rgba(28,27,24,.04)}
+.sw{width:11px;height:11px;border-radius:50%;box-shadow:0 0 0 1px rgba(28,27,24,.55)}
+.trk{height:1px;background:rgba(28,27,24,.25);position:relative}
+.trk i{position:absolute;top:-3px;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:var(--ink)}
+.num{font-family:var(--f-mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.switch{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2)}
+.switch span{width:30px;height:18px;border:1px solid currentColor;border-radius:9px;position:relative;flex:none}
+.switch span::after{content:"";position:absolute;left:3px;top:3px;width:10px;height:10px;border-radius:50%;background:currentColor;transition:left .2s}
+.switch[aria-checked="true"]{color:var(--ink)}
+.switch[aria-checked="true"] span{background:var(--ink)}
+.switch[aria-checked="true"] span::after{left:15px;background:var(--paper)}
+
+/* map */
+.mapwrap{flex:1;min-height:320px;position:relative;overflow:hidden;cursor:crosshair;touch-action:manipulation}
+.field{position:absolute;inset:0;background:radial-gradient(60% 70% at 4% 6%,#B4C58F 0,rgba(180,197,143,0) 70%),radial-gradient(55% 65% at 96% 4%,#F3B640 0,rgba(243,182,64,0) 70%),radial-gradient(40% 45% at 70% 35%,#F0C9A0 0,rgba(240,201,160,0) 70%),radial-gradient(60% 70% at 3% 97%,#356A73 0,rgba(53,106,115,0) 72%),radial-gradient(45% 50% at 30% 72%,#8FA9A6 0,rgba(143,169,166,0) 70%),radial-gradient(60% 70% at 98% 98%,#C2442A 0,rgba(194,68,42,0) 72%),radial-gradient(35% 40% at 78% 70%,#D98A6A 0,rgba(217,138,106,0) 70%),#E8DFCC}
+.grain{position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:multiply;opacity:.35;pointer-events:none}
+.rings{position:absolute;inset:0;pointer-events:none;-webkit-mask-image:radial-gradient(circle at 50% 50%,#000 0,#000 30%,transparent 70%);mask-image:radial-gradient(circle at 50% 50%,#000 0,#000 30%,transparent 70%);background:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.72) 0 1px,transparent 1.3px 46px)}
+.dim .field,.dim .rings{opacity:.75}
+.axh,.axv{position:absolute;background:rgba(255,255,255,.85);pointer-events:none}
+.axh{left:0;right:0;top:50%;height:1px}.axv{top:0;bottom:0;left:50%;width:1px}
+.axl{position:absolute;z-index:1;font-size:20px;font-weight:900;letter-spacing:.06em;line-height:1;text-align:center;padding:6px 10px;background:rgba(251,249,244,.55);pointer-events:none;transition:opacity .3s}
+.axl small{display:block;font-size:11px;font-weight:500;letter-spacing:0;margin-top:4px}
+.dim .axl{opacity:.7}
+#msvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#layer{position:absolute;inset:0}
+.dot{position:absolute;width:10px;height:10px;margin:-5px;border-radius:50%;background:#fff;border:1.5px solid var(--ink);padding:0}
+.dot.all{width:8px;height:8px;margin:-4px;background:rgba(251,249,244,.92);border:1px solid rgba(28,27,24,.3)}
+.dot.main{width:18px;height:18px;margin:-9px;background:var(--ink);border:0;box-shadow:0 0 0 4px #fff}
+.dot.foot{width:11px;height:11px;margin:-5.5px;background:#FBF9F4;border:1.5px solid rgba(28,27,24,.45)}
+.lbl{position:absolute;font-size:13px;font-weight:600;white-space:nowrap;line-height:20px;text-align:left;padding:0 2px}
+.lbl .d{font-family:var(--f-mono);font-weight:400;font-size:11px;color:#3A3832;margin-left:6px}
+.card{position:absolute;background:var(--ink);color:var(--paper);padding:8px 13px 10px;white-space:nowrap;text-align:left}
+.card .k{font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;opacity:.7;display:block}
+.card .t{font-family:var(--f-disp);font-size:26px;line-height:1.05;display:block;margin-top:3px}
+.marker{position:absolute;width:32px;height:32px;margin:-16px;border-radius:50%;border:2px solid var(--ink);pointer-events:none}
+.marker::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:var(--ink)}
+.ripple{position:absolute;border-radius:50%;border:1px dashed rgba(28,27,24,.5);pointer-events:none;animation:rip 1.1s ease-out both}
+@keyframes rip{from{transform:scale(.1);opacity:0}to{transform:scale(1);opacity:1}}
+.dot.alt::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(255,255,255,.95);box-shadow:0 0 6px rgba(255,255,255,.8);animation:glow 2.4s ease-out infinite;animation-delay:inherit;pointer-events:none}
+@keyframes glow{0%{transform:scale(.7);opacity:0}25%{opacity:.95}100%{transform:scale(2);opacity:0}}
+.nhint{position:absolute;pointer-events:none;background:#fff;color:var(--ink);font-size:12.5px;font-weight:500;line-height:1;padding:8px 11px;border-radius:8px;white-space:nowrap;box-shadow:0 2px 10px rgba(28,27,24,.18);animation:pop .45s cubic-bezier(.2,.8,.3,1.2) both,bob 1.6s ease-in-out .9s infinite}
+.nhint::after{content:'';position:absolute;width:9px;height:9px;background:#fff;transform:rotate(45deg)}
+.nhint.ht::after{left:calc(50% - 4.5px);bottom:-4px}.nhint.hb::after{left:calc(50% - 4.5px);top:-4px}
+.nhint.hr::after{top:calc(50% - 4.5px);left:-4px}.nhint.hl::after{top:calc(50% - 4.5px);right:-4px}
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -3px}}
+@media (prefers-reduced-motion:reduce){.dot.alt::after,.nhint{animation:none}}
+.pop{animation:pop .45s cubic-bezier(.2,.8,.3,1.2) both}
+@keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.hint{position:absolute;left:50%;top:16px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:9px 14px;font-size:13px;font-weight:600;pointer-events:none;white-space:nowrap}
+#hover{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap;transform:translate(16px,16px)}
+.ghost{position:absolute;width:22px;height:22px;margin:-11px;border-radius:50%;border:1.5px dashed var(--ink);opacity:.6;pointer-events:none}
+.pin{position:absolute;min-width:24px;height:24px;margin:-12px;border-radius:12px;background:var(--ink);color:var(--paper);font-family:var(--f-mono);font-size:11px;display:flex;align-items:center;justify-content:center;padding:0 6px;box-shadow:0 0 0 3px #fff}
+
+/* network + route */
+.netwrap{flex:1;min-height:360px;position:relative;overflow:hidden}
+.wash{position:absolute;inset:0;opacity:.3;pointer-events:none;background:radial-gradient(60% 70% at 4% 6%,#B4C58F 0,rgba(180,197,143,0) 70%),radial-gradient(55% 65% at 96% 4%,#F3B640 0,rgba(243,182,64,0) 70%),radial-gradient(60% 70% at 3% 97%,#356A73 0,rgba(53,106,115,0) 72%),radial-gradient(60% 70% at 98% 98%,#C2442A 0,rgba(194,68,42,0) 72%)}
+.netwrap>svg{position:absolute;inset:0;width:100%;height:100%}
+.net [data-song],.net [data-creator],.net [data-edge]{cursor:pointer}
+.net g:hover .nm{text-decoration:underline}
+.net .nd{transition:transform .55s cubic-bezier(.2,.8,.25,1),opacity .4s}
+.net .ln{opacity:0;transition:opacity .35s .35s}.net .ln.on{opacity:1}
+.net [data-edgeof].hl line:first-child{stroke:#1C1B18}
+.net text{paint-order:stroke;stroke:#EEE9DF;stroke-width:4px;stroke-linejoin:round}
+.crumbs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.crumbs button{text-decoration:underline;text-underline-offset:3px}
+.crumbs b{color:var(--ink)}
+.seg{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.seg button{height:32px;padding:0 12px;font-size:13px;border:1px solid var(--rule);color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600}
+.seg button:disabled{cursor:not-allowed;opacity:.6}
+.legend{position:absolute;left:0;bottom:0;background:rgba(244,240,232,.94);border:1px solid var(--rule);padding:12px 14px;display:flex;flex-direction:column;gap:7px;font-size:12px}
+.legend span{display:flex;align-items:center;gap:9px}
+.kv{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid rgba(28,27,24,.1);font-size:13px}
+.kv>span:first-child{color:var(--ink2)}
+.rec{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-top:1px solid rgba(28,27,24,.1);text-align:left;width:100%}
+.rec:hover{background:rgba(28,27,24,.04)}
+.rec b{display:flex;align-items:center;gap:9px;font-weight:500;font-size:14px}
+.rec small{padding-left:20px;font-size:12px;color:var(--ink2)}
+.fld{display:flex;align-items:center;gap:12px;height:52px;padding:0 14px;border:1px solid var(--ink);background:#FBF9F4}
+.fld input{border:0;background:transparent;outline:none;font-family:var(--f-disp);font-size:21px;width:100%;min-width:0}
+.combo{position:relative}
+.combo-tg{flex:none;width:30px;height:30px;font-size:13px;color:var(--ink2);border-left:1px solid var(--rule)}
+.combo-list{position:absolute;left:-1px;right:-1px;top:calc(100% + 4px);max-height:300px;overflow:auto;background:#FBF9F4;border:1px solid var(--ink);z-index:30;box-shadow:0 10px 24px rgba(28,27,24,.12)}
+.combo-list button{display:grid;grid-template-columns:12px minmax(0,1fr);column-gap:10px;align-items:center;width:100%;padding:8px 14px;text-align:left}
+.combo-list button.on,.combo-list button:hover{background:rgba(28,27,24,.07)}
+.combo-list .cl{font-size:14px;font-family:var(--f-ui);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.combo-list .cs{grid-column:2;font-size:11px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.combo-h{margin:0;padding:8px 14px 6px;font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;color:var(--ink2);border-bottom:1px solid rgba(28,27,24,.08)}
+.seg .combo-list button{height:auto;border:0;padding:8px 14px;color:var(--ink);font-size:inherit}
+.seg .combo-tg{height:30px;padding:0;border:0;border-left:1px solid var(--rule)}
+.sq{width:10px;height:10px;border:1.5px solid var(--ink);display:block}.sq.m{background:var(--ink)}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5;cursor:pointer}
+.chk input{width:16px;height:16px;margin:3px 0 0;accent-color:#1C1B18;flex:none}
+.mini{position:relative;height:120px;overflow:hidden;border:1px solid var(--rule)}
+.mini .field{background-size:auto}
+.mini span.d{position:absolute;width:6px;height:6px;margin:-3px;border-radius:50%;background:#FBF9F4;box-shadow:0 0 0 1px rgba(28,27,24,.28)}
+.note{font-size:12px;line-height:1.6;color:var(--ink2);margin:0}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:15px;color:var(--ink2)}
+.amap{flex:1;min-height:320px;position:relative;overflow:hidden}
+.adot{position:absolute;width:6px;height:6px;margin:-3px;border-radius:50%;background:rgba(251,249,244,.9);border:1px solid rgba(28,27,24,.2);transition:width .5s,height .5s,margin .5s,background .5s,border-color .5s,opacity .5s;opacity:0;padding:0;pointer-events:none}
+.adot.on{width:16px;height:16px;margin:-8px;border:1.5px solid var(--ink);opacity:1;z-index:2;cursor:pointer;pointer-events:auto}
+.adot.on.tt{width:22px;height:22px;margin:-11px;border-width:2.5px}
+.alb{position:absolute;font-size:11.5px;font-weight:600;white-space:nowrap;line-height:15px;pointer-events:none;text-shadow:0 0 3px rgba(251,249,244,.9),0 0 6px rgba(251,249,244,.8);animation:fadein .5s both}
+.alb.tt{font-family:var(--f-disp);font-size:16px;font-weight:400;line-height:19px}
+
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.tl{flex:none;display:flex;gap:4px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:thin}
+.chip{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:7px 10px;border:1px solid rgba(28,27,24,.18);background:rgba(251,249,244,.6);text-align:left;font-size:12px;line-height:1.25;max-width:150px}
+.chip b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.chip span{font-family:var(--f-mono);font-size:10px;color:var(--ink2)}
+.chip[aria-pressed="true"]{background:var(--ink);color:#FBF9F4;border-color:var(--ink)}
+.chip[aria-pressed="true"] span{color:rgba(251,249,244,.7)}
+.qbar{display:grid;grid-template-columns:12px 92px minmax(0,1fr) 22px;gap:8px;align-items:center;font-size:13px;padding:4px 0}
+.qbar .tr{height:8px;background:rgba(28,27,24,.08);position:relative}.qbar .tr i{position:absolute;inset:0 auto 0 0;background:var(--ink);transition:width .4s}
+@media (prefers-reduced-motion:reduce){.adot,.qbar .tr i{transition:none}.alb{animation:none}}
+.mdot{position:absolute;width:7px;height:7px;margin:-3.5px;border-radius:50%;background:rgba(251,249,244,.7);border:1px solid rgba(28,27,24,.18);padding:0;cursor:pointer;transition:transform .15s}
+.mdot:hover{transform:scale(1.8);background:#FBF9F4}
+.mdot.on{width:24px;height:24px;margin:-12px;border:2px solid var(--ink);z-index:2;font:600 11px/20px var(--f-mono);color:var(--ink);text-align:center}
+.mlab{position:absolute;font-size:11px;font-weight:600;white-space:nowrap;line-height:14px;pointer-events:none;text-shadow:0 0 3px rgba(251,249,244,.95),0 0 6px rgba(251,249,244,.8)}
+
+.cover{width:100%;aspect-ratio:1;display:block;background:var(--sunk);max-width:100%}
+.trk2{display:grid;grid-template-columns:20px 12px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid rgba(28,27,24,.09);font-size:14px}
+.trk2 button{font-size:12px;padding:2px 6px;color:var(--ink2)}
+.cr{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;font-size:13px;line-height:1.6;padding:2px 0}
+@media (max-width:860px){
+  html,body{height:auto}
+  .app{height:auto;min-height:100%}
+  main{flex-direction:column}
+  .stage{padding-right:0}
+  .mapwrap,.netwrap{flex:none;height:62vh;min-height:360px}
+  .panel{width:auto;border-left:0;border-top:1px solid var(--rule);margin:0 calc(-1 * max(16px,env(safe-area-inset-right,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-left,0px)))}
+  .big{font-size:20px}.axl small{display:none}.axl{font-size:14px;padding:4px 7px}.alb{font-size:10px;line-height:13px}.alb.tt{font-size:12.5px;line-height:15px}.adot.on{width:12px;height:12px;margin:-6px}.adot.on.tt{width:16px;height:16px;margin:-8px}.amap{min-height:300px}
+  nav.tabs{order:3;width:100%;margin:0}
+  nav.tabs button{height:44px;flex:1}
+  .tag{display:none}
+  .legend{display:none}
+}
+@media (prefers-reduced-motion:reduce){.ripple,.pop{animation:none}.net .nd,.net .ln{transition:none}}
+</style>
+</head><body>
+
+
+
+
+<div class="app">
+<header>
+  <div class="brand"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="none" stroke="#1C1B18" stroke-width="1.2"/><circle cx="10" cy="10" r="5" fill="none" stroke="#1C1B18" stroke-width="1.2"/><circle cx="13.5" cy="6.5" r="2.4" fill="#C2442A"/></svg><b>BORAMAP</b></div>
+  <span class="tag">按感觉找 BTS 的歌 · 非官方粉丝项目</span>
+  <nav class="tabs" aria-label="主导航">
+    <button id="tab-map" data-view="map" aria-current="page">情绪地图</button>
+    <button id="tab-mix" data-view="mix">自制专辑</button>
+    <button id="tab-album" data-view="album">专辑时光机</button>
+  </nav>
+  <div style="display:flex;align-items:center;gap:12px;justify-self:end;justify-content:flex-end;flex-wrap:wrap"><span class="mono" style="font-size:11px;color:var(--ink2);white-space:nowrap">made by 霹雳小猫</span></div>
+</header>
+<main>
+  <section class="stage" id="stage" aria-live="polite"></section>
+  <aside class="panel" id="panel"></aside>
+</main>
+</div>
+<datalist id="songlist"></datalist><datalist id="dnalist"></datalist>
+
+<script>
+/* ===== 第一版数据：148 首。位置 = 乐评 + Spotify 实测 + 人工审核；署名 = Melon / 维基百科 / KOMCA ===== */
+const MEMBERS=new Set(['RM','SUGA','j-hope','Jimin','V','Jung Kook','Jin']);
+const RAW=[["s4140191", "We Are Bulletproof PT.2", "", 0.749, 0.316, 2013, "2 COOL 4 SKOOL", "Supreme Boi~w~m|\"hitman\" bang~w~m|SUGA~w~m|Pdogg~wp~m|RM~w~m", 0], ["s4140193", "No More Dream", "", 0.499, -0.073, 2013, "2 COOL 4 SKOOL", "Supreme Boi~w~m|j-hope~w~m|SUGA~w~m|\"hitman\" bang~w~m|Pdogg~wp~m|RM~w~m", 1], ["s4140195", "Like", "좋아요", -0.548, -0.192, 2013, "2 COOL 4 SKOOL", "Slow Rabbit~wp~m|j-hope~w~m|SUGA~w~m|RM~w~m", 0], ["s4239688", "N.O", "", 0.863, -0.389, 2013, "O!RUL8,2?", "Supreme Boi~w~m|RM~w~m|SUGA~w~m|\"hitman\" bang~w~m|Pdogg~wp~m", 1], ["s4239689", "We On", "", 0.368, -0.14, 2013, "O!RUL8,2?", "RM~w~m|j-hope~w~m|SUGA~w~m|Pdogg~wp~m", 0], ["s4239691", "If I Ruled The World", "", 0.165, 0.137, 2013, "O!RUL8,2?", "RM~w~m|j-hope~w~m|SUGA~w~m|Pdogg~wp~m", 0], ["s4239692", "Coffee", "", -0.769, 0.244, 2013, "O!RUL8,2?", "Slow Rabbit~wp~k|RM~w~k|j-hope~w~k|SUGA~w~k|Pdogg~wp~k|Kwon Soon-il (Urban Zakapa)~w~k|Park Yong-in (Urban Zakapa)~w~k|Jaeman~w~k|Jo Hyun-ah (Urban Zakapa)~w~k", 0], ["s4239693", "BTS Cypher PT.1", "", 0.585, -0.081, 2013, "O!RUL8,2?", "Supreme Boi~wp~m|RM~w~m|j-hope~w~m|SUGA~w~m", 0], ["s4239694", "Attack on Bangtan", "진격의 방탄", 0.798, 0.854, 2013, "O!RUL8,2?", "Supreme Boi~w~m|RM~w~m|j-hope~w~m|SUGA~w~m|Pdogg~wp~m", 0], ["s4239695", "Paldogangsan", "팔도강산", 0.414, 0.671, 2013, "O!RUL8,2?", "RM~w~m|j-hope~w~m|SUGA~w~m|Pdogg~wp~m", 0], ["s4446449", "Boy In Luv", "상남자", 0.917, 0.779, 2014, "Skool Luv Affair", "Supreme Boi~w~m|RM~w~m|SUGA~w~m|\"hitman\" bang~w~m|Pdogg~wp~m", 1], ["s4446451", "Where You From", "어디에서 왔는지", -0.077, 0.221, 2014, "Skool Luv Affair", "Kwon Dae Hee~wp~m|Cream~wp~m|RM~w~m|j-hope~w~m|SUGA~w~m", 0], ["s4446452", "Just One Day", "하루만", -0.7, 0.186, 2014, "Skool Luv Affair", "RM~w~k|j-hope~w~k|Pdogg~wp~k|SUGA~w~k", 0], ["s4446453", "Tomorrow", "", -0.087, -0.308, 2014, "Skool Luv Affair", "RM~w~k|j-hope~w~k|SUGA~wp~k|Slow Rabbit~wp~k", 0], ["s4446454", "BTS Cypher PT.2 : Triptych", "", 0.554, -0.02, 2014, "Skool Luv Affair", "Supreme Boi~wp~m|RM~w~m|j-hope~w~m|SUGA~w~m", 0], ["s4446455", "Spine Breaker", "등골브레이커", 0.668, -0.035, 2014, "Skool Luv Affair", "Supreme Boi~w~k|RM~w~k|j-hope~w~k|SUGA~w~k|Pdogg~wp~k|Slow Rabbit~w~k|OWO~wp~k|Song Chang Sik~w~k", 0], ["s4446456", "Jump", "", 0.712, 0.931, 2014, "Skool Luv Affair", "Supreme Boi~wp~m|RM~w~m|j-hope~w~m|SUGA~wp~m|Pdogg~wp~m", 0], ["s4643464", "Miss Right", "", -0.126, 0.344, 2014, "Skool Luv Affair Special Addition", "Slow Rabbit~w~m|RM~w~m|j-hope~w~m|SUGA~w~m|\"hitman\" bang~w~m|Pdogg~wp~m", 1], ["s4824732", "Intro : What Am I To You", "", 0.574, -0.79, 2014, "DARK&WILD", "RM~w~m|Pdogg~wp~m", 0], ["s4824733", "Danger", "", 0.782, -0.619, 2014, "DARK&WILD", "RM~w~m|j-hope~w~m|SUGA~w~m|Pdogg~wp~m|\"hitman\" bang~w~m|Thanh Bui~w~m", 1], ["s4824734", "War of Hormone", "호르몬 전쟁", 0.892, 0.4, 2014, "DARK&WILD", "Supreme Boi~w~m|RM~w~m|j-hope~w~m|SUGA~w~m|Pdogg~wp~m", 0], ["s4824735", "Hip Hop Lover", "힙합성애자", 0.26, 0.069, 2014, "DARK&WILD", "RM~w~m|j-hope~w~m|SUGA~w~m|Pdogg~wp~m", 0], ["s4824736", "Let Me Know", "", -0.674, -0.936, 2014, "DARK&WILD", "RM~w~m|j-hope~w~m|SUGA~wp~m|Pdogg~wp~m", 0], ["s4824737", "Rain", "", -0.63, -0.756, 2014, "DARK&WILD", "Slow Rabbit~wp~m|RM~w~m|j-hope~w~m|SUGA~w~m", 0], ["s4824738", "BTS Cypher PT.3 : KILLER", "", 0.856, -0.02, 2014, "DARK&WILD", "Supreme Boi~wp~m|RM~w~m|j-hope~w~m|SUGA~w~m", 0], ["s4824740", "Can You Turn Off Your Phone", "핸드폰 좀 꺼줄래", 0.272, -0.036, 2014, "DARK&WILD", "RM~w~k|j-hope~w~k|SUGA~w~k|Pdogg~wp~k", 0], ["s4824741", "Embarrassed", "이불킥", -0.137, 0.03, 2014, "DARK&WILD", "Slow Rabbit~w~m|RM~w~m|j-hope~w~m|SUGA~w~m|Shawn~wp~m|\"hitman\" bang~wp~m|Pdogg~wp~m", 0], ["s4824742", "24/7=heaven", "", 0.246, 0.461, 2014, "DARK&WILD", "Slow Rabbit~w~m|RM~w~m|j-hope~w~m|SUGA~w~m|Pdogg~wp~m", 0], ["s4824743", "Look Here", "여기 봐", 0.089, 0.068, 2014, "DARK&WILD", "RM~w~k|j-hope~w~k|SUGA~w~k|Lee Ho Hyoung~wp~k|Jinbo~w~k", 0], ["s4824744", "2nd Grade", "2학년", 0.433, 0.078, 2014, "DARK&WILD", "Supreme Boi~w~m|RM~w~m|j-hope~w~m|SUGA~w~m|Pdogg~wp~m", 0], ["s5681153", "I NEED U", "", 0.31, -0.874, 2015, "화양연화 pt.1", "Pdogg~wp~m|\"hitman\" bang~w~m|RM~w~m|SUGA~w~m|j-hope~w~m|Brother Su~w~m", 1], ["s5681154", "Hold Me Tight", "잡아줘", -0.653, -0.627, 2015, "화양연화 pt.1", "Slow Rabbit~wp~k|Pdogg~w~k|V~w~k|RM~w~k|SUGA~w~k|j-hope~w~k|김번창~w~k", 0], ["s5681156", "Dope", "쩔어", 0.859, 0.95, 2015, "화양연화 pt.1", "Pdogg~wp~k|earattack~w~k|\"hitman\" bang~w~k|RM~w~k|SUGA~w~k|j-hope~w~k", 0], ["s5681157", "Boyz with Fun", "흥탄소년단", 0.621, 0.875, 2015, "화양연화 pt.1", "SUGA~wp~m|Pdogg~wp~m|RM~w~m|j-hope~w~m|Jin~w~m|Jimin~w~m|V~w~m|\"hitman\" bang~w~m", 0], ["s5681158", "Converse High", "", -0.33, 0.319, 2015, "화양연화 pt.1", "Pdogg~wp~m|Slow Rabbit~wp~m|RM~w~m|SUGA~w~m|j-hope~w~m", 0], ["s5681159", "Moving On", "이사", -0.4, -0.299, 2015, "화양연화 pt.1", "Pdogg~wp~m|RM~w~m|SUGA~w~m|j-hope~w~m", 0], ["s5681160", "Outro : Love is Not Over", "", -0.891, -0.811, 2015, "화양연화 pt.1", "Jung Kook~wp~m|Slow Rabbit~wp~m|Pdogg~w~m|Jin~w~m", 0], ["s5826653", "FOR YOU", "", 0.495, 0.624, 2015, "FOR YOU", "RM~w~k|j-hope~w~k|SUGA~w~k|Pdogg~w~k|UTA~w~k|Hiro~w~k", 1], ["s7953784", "INTRO : Never Mind", "", 0.396, -0.046, 2015, "화양연화 pt.2", "Slow Rabbit~wap~m|SUGA~wa~m", 0], ["s7953785", "RUN", "", 0.476, -0.15, 2015, "화양연화 pt.2", "Pdogg~wap~m|\"hitman\" bang~wa~m|RM~wa~m|SUGA~wa~m|V~wa~m|Jung Kook~wa~m|j-hope~wa~m", 1], ["s7953786", "Butterfly", "", -0.656, -0.851, 2015, "화양연화 pt.2", "\"hitman\" bang~wa~k|Slow Rabbit~wa~k|Pdogg~wap~k|Brother Su~wa~k", 0], ["s7953787", "Whalien 52", "", -0.501, -0.657, 2015, "화양연화 pt.2", "Pdogg~wap~m|Brother Su~wa~m|\"hitman\" bang~wa~m|RM~wa~m|SUGA~wa~m|j-hope~wa~m|Slow Rabbit~wa~m", 0], ["s7953788", "Ma City", "", 0.447, 0.7, 2015, "화양연화 pt.2", "Pdogg~wap~m|\"hitman\" bang~wa~m|RM~wa~m|SUGA~wa~m|j-hope~wa~m", 0], ["s7953789", "Silver Spoon", "뱁새", 0.724, -0.15, 2015, "화양연화 pt.2", "Pdogg~wap~m|Supreme Boi~wa~m|RM~wa~m|Slow Rabbit~wa~m", 0], ["s7953791", "Autumn Leaves", "고엽", -0.466, -0.853, 2015, "화양연화 pt.2", "SUGA~wap~m|Slow Rabbit~wap~m|Jung Kook~wa~m|\"hitman\" bang~wa~m|RM~wa~m|j-hope~wa~m|Pdogg~wa~m", 0], ["s7953792", "OUTRO : House Of Cards", "", -0.799, -0.7, 2015, "화양연화 pt.2", "Slow Rabbit~wap~m|Brother Su~wa~m|\"hitman\" bang~wa~m", 0], ["s8152776", "EPILOGUE : Young Forever", "", -0.266, -0.227, 2016, "화양연화 Young Forever", "Slow Rabbit~wp~m|RM~wp~m|\"hitman\" bang~w~m|SUGA~w~m|j-hope~w~m", 0], ["s8167307", "FIRE", "불타오르네", 0.925, 0.907, 2016, "화양연화 Young Forever", "Pdogg~wp~m|\"hitman\" bang~w~m|RM~w~m|SUGA~w~m|Devine Channel~w~m", 1], ["s8167308", "Save ME", "", 0.117, -0.456, 2016, "화양연화 Young Forever", "Pdogg~wp~m|Ray Michael Djan Jr~w~m|Ashton Foster~w~m|Samantha Harper~w~m|RM~w~m|SUGA~w~m|j-hope~w~m", 0], ["s30029173", "Blood Sweat & Tears", "피 땀 눈물", 0.091, -0.271, 2016, "WINGS", "Pdogg~wp~m|RM~w~m|SUGA~w~m|j-hope~w~m|\"hitman\" bang~w~m|Kim Do-hoon~w~m", 1], ["s30029174", "Begin", "", -0.259, 0.03, 2016, "WINGS", "Tony Esterly~wp~m|David Quinones~w~m|RM~w~m", 0], ["s30029175", "Lie", "", -0.265, -0.816, 2016, "WINGS", "DOCSKIM~wp~m|Sumin~w~m|\"hitman\" bang~w~m|Jimin~w~m|Pdogg~w~m", 0], ["s30029176", "Stigma", "", -0.926, -0.634, 2016, "WINGS", "Philtre~wp~m|V~w~m|Slow Rabbit~w~m|\"hitman\" bang~w~m", 0], ["s30029177", "First Love", "", -0.255, -0.517, 2016, "WINGS", "Miss Kay~wp~m|SUGA~wp~m", 0], ["s30029178", "Reflection", "", -0.785, -0.589, 2016, "WINGS", "RM~wp~m|Slow Rabbit~wp~m", 0], ["s30029179", "MAMA", "", 0.265, 0.546, 2016, "WINGS", "Primary~wp~m|Pdogg~wp~m|j-hope~w~m", 0], ["s30029180", "Awake", "", -0.761, -0.4, 2016, "WINGS", "Slow Rabbit~wp~m|Jin~w~m|j-hope~w~m|June~w~m|Pdogg~w~m|RM~w~m|\"hitman\" bang~w~m", 0], ["s30029181", "Lost", "", -0.188, -0.18, 2016, "WINGS", "Pdogg~wp~m|Supreme Boi~w~m|Peter Ibsen~w~m|Richard Rawson~w~m|Lee Paul Williams~w~m|RM~w~m|June~w~m", 0], ["s30029182", "BTS Cypher 4", "", 0.3, -0.11, 2016, "WINGS", "Chris 'Tricky' Stewart~wp~m|Medor J. Pierre~wp~m|RM~w~m|j-hope~w~m|SUGA~w~m", 0], ["s30029183", "Am I Wrong", "", 0.614, -0.15, 2016, "WINGS", "Keb' Mo'~wp~k|Sam Klempner~wp~u|James Reynolds~wp~u|Josh Wilkinson~wp~u|RM~w~u|Supreme Boi~w~u|Gaeko~w~u|Pdogg~w~u|ADORA~w~u", 0], ["s30029184", "21st Century Girl", "21세기 소녀", 0.622, 0.692, 2016, "WINGS", "Pdogg~wp~m|\"hitman\" bang~w~m|RM~w~m|Supreme Boi~w~m", 0], ["s30029185", "2! 3!", "둘! 셋!", -0.428, 0.03, 2016, "WINGS", "Slow Rabbit~wp~m|Pdogg~wp~m|\"hitman\" bang~w~m|RM~w~m|j-hope~w~m|SUGA~w~m", 0], ["s30244931", "Spring Day", "봄날", -0.409, -0.576, 2017, "YOU NEVER WALK ALONE", "Pdogg~wp~m|RM~w~m|ADORA~w~m|\"hitman\" bang~w~m|Arlissa Ruppert~w~m|Peter Ibsen~w~m|SUGA~w~m", 1], ["s30244932", "Not Today", "", 0.935, 0.582, 2017, "YOU NEVER WALK ALONE", "Pdogg~wp~k|\"hitman\" bang~w~k|RM~w~k|Supreme Boi~w~k|ADORA~w~k|June~w~k", 0], ["s30244933", "Outro : Wings", "", 0.34, 0.828, 2017, "YOU NEVER WALK ALONE", "Pdogg~wp~m|ADORA~w~m|RM~w~m|j-hope~w~m|SUGA~w~m", 0], ["s30637981", "Intro : Serendipity", "", -0.899, 0.4, 2017, "LOVE YOURSELF 承 'Her'", "Slow Rabbit~wp~m|Ray Michael Djan Jr~w~m|Ashton Foster~w~m|RM~w~m|\"hitman\" bang~w~m", 0], ["s30637982", "DNA", "", 0.095, 0.753, 2017, "LOVE YOURSELF 承 'Her'", "Pdogg~wp~m|\"hitman\" bang~w~m|Kass~w~m|Supreme Boi~w~m|SUGA~w~m|RM~w~m", 1], ["s30637983", "Best Of Me", "", 0.173, 0.43, 2017, "LOVE YOURSELF 承 'Her'", "Andrew Taggart~wp~m|Pdogg~wp~m|Ray Michael Djan Jr~w~m|Ashton Foster~w~m|Sam Klempner~w~m|RM~w~m|\"hitman\" bang~w~m|SUGA~w~m|j-hope~w~m|ADORA~w~m", 0], ["s30637984", "Dimple", "보조개", -0.499, 0.868, 2017, "LOVE YOURSELF 承 'Her'", "Matthew Tishler~wp~m|Allison Kaplan~w~m|RM~w~m|Crash Cove~p~M", 0], ["s30637985", "Pied Piper", "", -0.594, 0.094, 2017, "LOVE YOURSELF 承 'Her'", "Pdogg~wp~m|Jinbo~w~m|Kass~w~m|RM~w~m|SUGA~w~m|j-hope~w~m|\"hitman\" bang~w~m", 0], ["s30637987", "MIC Drop", "", 0.854, -0.14, 2017, "LOVE YOURSELF 承 'Her'", "Pdogg~wp~m|Supreme Boi~w~m|\"hitman\" bang~w~m|j-hope~w~m|RM~w~m", 0], ["s30637988", "Go Go", "고민보다 Go", 0.261, 0.15, 2017, "LOVE YOURSELF 承 'Her'", "Pdogg~wp~m|\"hitman\" bang~w~m|Supreme Boi~w~m", 0], ["s30637991", "Sea", "바다", -0.529, -0.499, 2017, "LOVE YOURSELF 承 'Her'", "RM~wp~m|Slow Rabbit~w~m|SUGA~w~m|j-hope~w~m", 0], ["s30769545", "Crystal Snow", "", -0.457, -0.275, 2017, "MIC Drop/DNA/Crystal Snow", "RM~w~k|Kanata Okajima~w~k|Soma Genda~w~k", 0], ["s30995602", "Don't Leave Me", "", 0.554, -0.441, 2018, "FACE YOURSELF", "Pdogg~wa~k|Hiro~w~k|Sunny Boy~w~k|UTA~w~k|KM-MARKIT~a~M|17~a~M", 0], ["s31085237", "FAKE LOVE", "", -0.066, -0.897, 2018, "LOVE YOURSELF 轉 'Tear'", "Pdogg~wp~m|\"hitman\" bang~w~m|RM~w~m", 1], ["s31085238", "The Truth Untold", "전하지 못한 진심", -0.86, -0.949, 2018, "LOVE YOURSELF 轉 'Tear'", "Steve Aoki~wp~m|Roland Spreckley~w~m|Jake Torrey~w~m|Noah Conrad~w~m|Annika Wells~w~m|RM~w~m|Slow Rabbit~w~m", 0], ["s31085239", "134340", "", -0.635, -0.524, 2018, "LOVE YOURSELF 轉 'Tear'", "Pdogg~wp~m|ADORA~w~m|Bobby Chung~w~m|RM~w~m|Martin Luke Brown~w~m|Orla Gartland~w~m|SUGA~w~m|j-hope~w~m", 0], ["s31085240", "Paradise", "낙원", -0.585, 0.4, 2018, "LOVE YOURSELF 轉 'Tear'", "lophiile~wp~m|MNEK~w~m|RM~w~m|Song Jae-kyung~w~m|SUGA~w~m|j-hope~w~m", 0], ["s31085241", "Love Maze", "", 0.103, 0.502, 2018, "LOVE YOURSELF 轉 'Tear'", "Pdogg~wp~m|DJ Swivel~w~m|Candace Nicole Sosa~w~m|RM~w~m|SUGA~w~m|j-hope~w~m|Bobby Chung~w~m|ADORA~w~m|Yoon Kita~w~m", 0], ["s31085242", "Magic Shop", "", -0.683, 0.4, 2018, "LOVE YOURSELF 轉 'Tear'", "Jung Kook~wp~m|Hiss Noise~wp~m|RM~w~m|DJ Swivel~w~m|Candace Nicole Sosa~w~m|ADORA~wp~m|j-hope~w~m|SUGA~w~m", 0], ["s31085243", "Airplane pt.2", "", -0.03, 0.03, 2018, "LOVE YOURSELF 轉 'Tear'", "Pdogg~wp~m|RM~w~m|Ali Tamposi~w~m|Liza Owens~w~m|Roman Campolo~w~m|\"hitman\" bang~w~m|j-hope~w~m|SUGA~w~m", 0], ["s31085244", "Anpanman", "", 0.514, 0.7, 2018, "LOVE YOURSELF 轉 'Tear'", "Pdogg~wp~m|Supreme Boi~w~m|\"hitman\" bang~w~m|RM~w~m|SUGA~w~m|Jinbo~w~m", 0], ["s31085245", "So What", "", 0.675, 0.751, 2018, "LOVE YOURSELF 轉 'Tear'", "Pdogg~wp~m|\"hitman\" bang~w~m|ADORA~w~m|RM~w~m|SUGA~w~m|j-hope~w~m", 0], ["s31266282", "Euphoria", "", -0.086, 0.525, 2018, "LOVE YOURSELF 結 'Answer'", "DJ Swivel~wp~m|Candace Nicole Sosa~w~m|Melanie Joy Fontana~w~m|\"hitman\" bang~w~m|Supreme Boi~w~m|ADORA~w~m|RM~w~m", 0], ["s31266286", "Trivia 轉 : Seesaw", "", -0.355, -0.18, 2018, "LOVE YOURSELF 結 'Answer'", "Slow Rabbit~wp~m|SUGA~wp~m", 0], ["s31266287", "Tear", "", 0.804, -0.892, 2018, "LOVE YOURSELF 結 'Answer'", "Shin Myung-soo~w~m|DOCSKIM~wp~m|SUGA~w~m|RM~w~m|j-hope~w~m", 0], ["s31266288", "Epiphany", "", -0.904, 0.25, 2018, "LOVE YOURSELF 結 'Answer'", "Slow Rabbit~wp~m|\"hitman\" bang~w~m|ADORA~w~m", 0], ["s31266289", "I'm Fine", "", 0.265, -0.293, 2018, "LOVE YOURSELF 結 'Answer'", "Pdogg~wp~m|Ray Michael Djan Jr~w~m|Ashton Foster~w~m|Lauren Dyson~w~m|RM~w~m|Bobby Chung~w~m|Yoon Kita~w~m|DJ Swivel~w~m|Candace Nicole Sosa~w~m|SUGA~w~m|j-hope~w~m|Samantha Harper~w~m", 0], ["s31266290", "IDOL", "", 0.754, 0.751, 2018, "LOVE YOURSELF 結 'Answer'", "Pdogg~wp~m|Supreme Boi~w~m|\"hitman\" bang~w~m|Ali Tamposi~w~m|Roman Campolo~w~m|RM~w~m", 1], ["s31266291", "Answer : Love Myself", "", -0.212, 0.58, 2018, "LOVE YOURSELF 結 'Answer'", "Pdogg~wp~m|Bobby Chung~w~m|DJ Swivel~w~m|Candace Nicole Sosa~w~m|RM~w~m|SUGA~w~m|j-hope~w~m|Ray Michael Djan Jr~w~m|Ashton Foster~w~m|Conor Maynard~w~m", 0], ["s31266292", "Trivia 起 : Just Dance", "", 0.368, 0.442, 2018, "LOVE YOURSELF 結 'Answer'", "Hiss Noise~wp~m|j-hope~w~m", 0], ["s31266300", "Trivia 承 : Love", "", -0.727, 0.352, 2018, "LOVE YOURSELF 結 'Answer'", "Slow Rabbit~wp~m|RM~w~m|Hiss Noise~w~m", 0], ["s31266302", "Her", "", -0.167, 0.18, 2018, "LOVE YOURSELF 結 'Answer'", "SUGA~wp~m|Slow Rabbit~wp~m|RM~w~m|j-hope~w~m", 0], ["s31266305", "Singularity", "", -0.908, -0.372, 2018, "LOVE YOURSELF 結 'Answer'", "Charlie J. Perry~wp~m|RM~w~m", 0], ["s31737196", "Intro : Persona", "", 0.669, 0.095, 2019, "MAP OF THE SOUL : PERSONA", "Hiss Noise~wp~m|RM~w~m|Pdogg~w~m", 0], ["s31737197", "Boy With Luv", "작은 것들을 위한 시", 0.283, 0.676, 2019, "MAP OF THE SOUL : PERSONA", "Pdogg~wp~m|RM~w~m|Melanie Joy Fontana~w~m|Michel Schulz~w~m|\"hitman\" bang~w~m|SUGA~w~m|Emily Weisband~w~m|j-hope~w~m|Halsey~w~m", 1], ["s31737198", "Mikrokosmos", "소우주", -0.343, 0.549, 2019, "MAP OF THE SOUL : PERSONA", "Matty Thomson~w~k|Max Lynedoch Graham~w~k|Marcus McCoan~w~k|Ryan Lawrie~w~k|Camilla Anne Reynolds~w~k|RM~w~k|SUGA~w~k|j-hope~w~k|DJ Swivel~w~k|Candace Nicole Sosa~w~k|Melanie Joy Fontana~w~k|Michel Schulz~w~k|Arcades~p~k", 0], ["s31737199", "Make It Right", "", -0.641, 0.271, 2019, "MAP OF THE SOUL : PERSONA", "Fred again..~wp~m|Ed Sheeran~w~m|Benjy Gibson~w~m|Jo Hill~w~m|RM~w~m|SUGA~w~m|j-hope~w~m", 0], ["s31737200", "HOME", "", -0.302, 0.23, 2019, "MAP OF THE SOUL : PERSONA", "Pdogg~wp~m|RM~w~m|Lauren Dyson~w~m|Tushar Apte~w~m|SUGA~w~m|j-hope~w~m|Krysta Youngs~w~m|Julia Ross~w~m|Bobby Chung~w~m|Song Jae-kyung~w~m|ADORA~w~m", 0], ["s31737201", "Jamais Vu", "", -0.827, -0.647, 2019, "MAP OF THE SOUL : PERSONA", "Marcus McCoan~wp~k|Owen Roberts~w~k|Matty Thomson~w~k|Max Lynedoch Graham~w~k|Camilla Anne Reynolds~w~k|RM~w~k|j-hope~w~k|\"hitman\" bang~w~k|Arcades~p~k|Bad Milk~p~k", 0], ["s31737202", "Dionysus", "", 0.829, 0.595, 2019, "MAP OF THE SOUL : PERSONA", "Pdogg~wp~m|j-hope~w~m|Supreme Boi~w~m|RM~w~m|SUGA~w~m|Roman Campolo~w~m", 0], ["s31890540", "Heartbeat", "", 0.049, 0.43, 2019, "BTS WORLD OST", "DJ Swivel~w~k|Coyle Girelli~w~k|Supreme Boi~w~k|\"hitman\" bang~w~k|RM~w~k|j-hope~w~k|이현~w~k", 0], ["s31899445", "Lights", "", 0.059, 0.222, 2019, "Lights / Boy With Luv", "Yo-Hei~w~k|Sunny Boy~w~k|UTA~w~k", 1], ["s32323969", "Black Swan", "", -0.291, -0.364, 2020, "MAP OF THE SOUL : 7", "Pdogg~wp~m|RM~w~m|August Rigo~w~m|Vince Nantes~w~m|Clyde Kelly~w~m", 0], ["s32399826", "Interlude : Shadow", "", 0.24, -0.593, 2020, "MAP OF THE SOUL : 7", "SUGA~wp~m|Ghstloop~wp~m|El Capitxn~wp~m|Pdogg~w~m|RM~w~m", 0], ["s32399827", "Filter", "", -0.213, 0.278, 2020, "MAP OF THE SOUL : 7", "Tom Wiklund~wp~m|Hilda Stenmalm~w~m|\"hitman\" bang~w~m|Lee Seu-ran~w~m|LUTRA~w~m|danke~w~m|Bobby Chung~w~m|Fallin' Dild~w~m|Neon Boy~w~m|Ahn Bok-jin~w~m", 0], ["s32399828", "My Time", "시차", -0.345, -0.277, 2020, "MAP OF THE SOUL : 7", "Sleep Deez~wp~m|RM~w~m|Jayrah Gibson~w~m|Pdogg~wp~m|Printz Board~w~m|Richelle Alleyne~w~m|Jung Kook~w~m", 0], ["s32399829", "Louder than bombs", "", -0.583, -0.373, 2020, "MAP OF THE SOUL : 7", "Troye Sivan~w~m|Bram Inscore~wp~m|Allie X~w~m|Leland~w~m|RM~w~m|SUGA~w~m|j-hope~w~m", 0], ["s32399830", "ON", "", 0.551, 0.478, 2020, "MAP OF THE SOUL : 7", "Pdogg~wp~k|RM~w~k|August Rigo~w~k|Melanie Joy Fontana~w~k|Michel Schulz~w~k|SUGA~w~k|j-hope~w~k|Antonina Armato~w~k|Krysta Youngs~w~k|Julia Ross~w~k", 1], ["s32399831", "UGH!", "욱", 0.426, -0.574, 2020, "MAP OF THE SOUL : 7", "Supreme Boi~wp~m|SUGA~w~m|RM~w~m|Hiss Noise~w~m|j-hope~w~m|Icecream Drum~w~m", 0], ["s32399832", "00:00 (Zero O’Clock)", "", -0.844, -0.113, 2020, "MAP OF THE SOUL : 7", "Pdogg~wp~m|RM~w~m|Jessie Lauryn Foutz~w~m|Antonina Armato~w~m", 0], ["s32399833", "Inner Child", "", -0.593, 0.611, 2020, "MAP OF THE SOUL : 7", "RM~w~m|Matty Thomson~w~m|Max Lynedoch Graham~w~m|Ryan Lawrie~w~m|Ellis Miah~w~m|Adien Lewis~w~m|Pdogg~w~m|V~w~m|James F. Reynolds~w~m|Arcades~p~M", 0], ["s32399834", "Friends", "친구", -0.353, 0.7, 2020, "MAP OF THE SOUL : 7", "Pdogg~wp~m|Supreme Boi~w~m|Jimin~wp~m|ADORA~w~m|Martin Sjølie~w~m|Stella Jang~w~m", 0], ["s32399835", "Moon", "", 0.02, 0.52, 2020, "MAP OF THE SOUL : 7", "Slow Rabbit~wp~m|RM~w~m|Jin~w~m|ADORA~w~m|DJ Swivel~w~m|Candace Nicole Sosa~w~m|Daniel Caesar~w~m|Ludwig Lindell~w~m", 0], ["s32399836", "Respect", "", -0.309, 0.125, 2020, "MAP OF THE SOUL : 7", "Hiss Noise~wp~m|SUGA~wp~m|RM~w~m|El Capitxn~wp~m", 0], ["s32399837", "We are Bulletproof : the Eternal", "", -0.667, -0.112, 2020, "MAP OF THE SOUL : 7", "Audien~wp~k|RM~w~k|Henrik Michelsen~wp~k|Sophie 'Frances' Cooke~w~k|Etta Zelmani~w~k|Cazzi Opeia~w~k|Ellen Berg~w~k|Will Tanner~w~k|Gusten Dahlqvist~w~k|DJ Swivel~w~k|Candace Nicole Sosa~w~k|SUGA~w~k|j-hope~w~k|Elohim~w~k|Antonina Armato~w~k|July Jones~w~k|Alexander Magnus Karlsson~w~k|Alexei Viktorovitch~w~k|Amelia Kate Woodward Toomey~w~k", 0], ["s32399838", "Outro : Ego", "", 0.558, 0.354, 2020, "MAP OF THE SOUL : 7", "j-hope~w~m|Hiss Noise~wp~m|Supreme Boi~w~m", 0], ["s32698139", "Stay Gold", "", 0.389, 0.578, 2020, "MAP OF THE SOUL : 7 ~THE JOURNEY~", "UTA~w~k|Sunny Boy~w~k|Melanie Joy Fontana~w~k|Michel Schulz~w~k|JUN~w~k|KM-MARKIT~w~k", 1], ["s32872978", "Dynamite", "", 0.173, 0.93, 2020, "Dynamite (DayTime Version)", "David Stewart~wp~m|Jessica Agombar~w~m", 1], ["s33077234", "Life Goes On", "", -0.725, -0.294, 2020, "BE", "Pdogg~wp~k|RM~w~k|Alina Paulsen~w~k|Chris James~w~k|Antonina Armato~w~k|SUGA~w~k|j-hope~w~k", 1], ["s33077235", "Fly To My Room", "내 방을 여행하는 법", -0.859, 0.081, 2020, "BE", "Cosmo's Midnight~wp~m|Joe Femi Griffith~w~m|RM~w~m|SUGA~w~m|j-hope~w~m", 0], ["s33077236", "Blue & Grey", "", -0.95, -0.92, 2020, "BE", "Park Ji-soo~wp~m|Levi~wp~m|V~wp~m|Hiss Noise~wp~m|SUGA~w~m|RM~w~m|j-hope~w~m|Metaphor~w~m", 0], ["s33077238", "Telepathy", "잠시", 0.151, 0.625, 2020, "BE", "SUGA~w~m|Hiss Noise~wp~m|RM~w~m|Jung Kook~w~m|El Capitxn~wp~m", 0], ["s33077239", "Dis-ease", "병", 0.149, -0.069, 2020, "BE", "j-hope~w~m|Ivan Jackson Rosenberg~w~m|Ghstloop~w~m|RM~w~m|Pdogg~w~m|SUGA~w~m|Jimin~w~m|Randy Runyon~w~m|Brasstracks~p~M", 0], ["s33077240", "Stay", "", 0.349, 0.25, 2020, "BE", "Arston~wp~m|Jung Kook~w~m|RM~w~m|Jin~w~m", 0], ["s33385493", "Film out", "", -0.37, -0.465, 2021, "BTS, THE BEST", "Iyori Shimizu~w~k|Jung Kook~w~k|UTA~wa~k", 1], ["s33507137", "Butter", "", 0.448, 0.927, 2021, "Butter", "Jenna Andrews~w~m|Rob Grimaldi~wp~m|Stephen Kirk~wp~m|RM~w~m|Alex Bilowitz~w~m|Sebastian Garcia~w~m|Ron Perry~wp~m", 1], ["s33719763", "Permission to Dance", "", -0.123, 0.849, 2021, "Permission to Dance", "Ed Sheeran~w~m|Steve Mac~wp~m|Johnny McDaid~w~m|Jenna Andrews~wp~m|Stephen Kirk~p~M", 1], ["s35272013", "Born Singer", "", -0.032, -0.18, 2022, "Proof", "Jermaine Cole~w~k|James Fauntleroy II~w~k|Anthony Parrino~w~k|Canei Finch~w~k|Juro \"Mez\" Davis~w~k|Ibrahim Hamad~w~k|RM~w~u|SUGA~w~u|j-hope~w~u", 0], ["s35272015", "Run BTS", "달려라 방탄", 0.568, 0.59, 2022, "Proof", "Dem Jointz~wp~m|RM~w~m|Ebenezer~w~m|j-hope~w~m|Ghstloop~wp~m|Jung Kook~w~m|SUGA~w~m|Oneye~w~m|Daniel Caesar~w~m|Ludwig Lindell~w~m|Melanie Joy Fontana~w~m|Michel Schulz~w~m|Feli Ferraro~w~m", 0], ["s35272054", "For Youth", "", -0.85, 0.7, 2022, "Proof", "RM~w~m|Imad Royal~wp~m|Rogét Chahayed~wp~m|Blaise Railey~w~m|Drew Love~w~m|4rest~w~m|j-hope~w~m|SUGA~w~m|Hiss Noise~w~m|Slow Rabbit~w~m|\"hitman\" bang~w~m", 0], ["s35272060", "Yet To Come", "", -0.45, 0.546, 2022, "Proof", "Pdogg~wp~m|RM~w~m|MAX~w~m|Dan Gleyzer~w~m|SUGA~w~m|j-hope~w~m", 1], ["s36516320", "Take Two", "", -0.462, 0.368, 2023, "Take Two", "SUGA~wp~m|El Capitxn~wp~m|RM~w~m|Gabriel Brandes~w~m|Matty Thomson~w~m|Max Lynedoch Graham~w~m|j-hope~w~m|Nois Upgrader~w~m", 1], ["s601555636", "Body to Body", "", 0.726, 0.562, 2026, "ARIRANG", "Ryan Tedder~wp~m|Maxime Picard~w~m|Thomas Wesley Pentz~wp~m|Akira Evans~w~m|Teezo Touchdown~w~m|Pdogg~wp~m|RM~w~m|SUGA~w~m|j-hope~w~m|Kirsten Allyssa Spencer~w~m|Picard Brothers~p~M", 0], ["s601555637", "Hooligan", "", 0.946, -0.052, 2026, "ARIRANG", "Pablo Diaz Reixa~wp~m|Michel Magne~w~m|Pablo Martinez Alborch~w~m|Marcus \"MarcLo\" Lomax~w~m|Xplicit~w~m|Jung Kook~w~m|Delacey~w~m|Jasper Harris~wp~m|RM~w~m|j-hope~w~m|SUGA~w~m|Derrick Milano~w~m|Pdogg~w~m|Kirsten Allyssa Spencer~w~m|Fakeguido~p~M|Ghstloop~p~M", 0], ["s601555638", "Aliens", "", 0.571, 0.15, 2026, "ARIRANG", "Michael Len Williams~wp~m|RM~w~m|Asheton Terrance O'Neil Hogan~wp~m|Brandon Kenneth Bell~wp~m|Khaled Rohaim~wp~m|Charles Hinshaw~w~m|Jean Marcel Day Jr.~w~m|James Essien~w~m|j-hope~w~m|Jung Kook~w~m|SUGA~w~m|John Mitchell~w~m|Derrick Milano~w~m|Pdogg~wp~m", 0], ["s601555639", "FYA", "", 0.919, 0.245, 2026, "ARIRANG", "JPEGMAFIA~w~k|Gregory \"Aldae\" Hein~w~k|Kurtis Wells~w~k|Thomas Wesley Pentz~wp~k|RM~w~k|Jung Kook~w~k|Richard Cook Mears IV~wp~k|Harley Streten~wp~k|SUGA~w~k", 0], ["s601555640", "2.0", "", 0.758, -0.051, 2026, "ARIRANG", "Michael Len Williams~wp~m|Asheton Terrance O'Neil Hogan~wp~m|Atia Boggs~w~m|Charles Hinshaw~w~m|RM~w~m|j-hope~w~m|V~w~m|Jung Kook~w~m|John Mitchell~w~m|Derrick Milano~w~m|Pdogg~w~m|SUGA~w~m", 0], ["s601555642", "SWIM", "", -0.535, 0.287, 2026, "ARIRANG", "James Essien~w~k|Sean Foreman~w~k|Tyler Spry~wp~k|Jamison Baken~w~k|Ryan Tedder~w~k|RM~w~k|Kirsten Allyssa Spencer~w~k|Derrick Milano~w~k|Pdogg~wp~k|Leclair~p~k", 1], ["s601555643", "Merry Go Round", "", -0.191, -0.342, 2026, "ARIRANG", "Sam Homaee~wp~k|Sarah Aarons~wp~k|Gregory \"Aldae\" Hein~wp~k|Kevin Parker~wp~k|RM~w~k|SUGA~w~k|j-hope~w~k|Derrick Milano~w~k|Pdogg~w~k|Ghstloop~p~k", 0], ["s601555644", "NORMAL", "", -0.13, -0.537, 2026, "ARIRANG", "Sean Foreman~w~m|Livvi Franc~w~m|Ryan Tedder~wp~m|Sean Cook~wp~m|RM~w~m|j-hope~w~m|SUGA~w~m|Kirsten Allyssa Spencer~w~m|Derrick Milano~w~m|Pdogg~w~m", 0], ["s601555645", "Like Animals", "", -0.415, -0.369, 2026, "ARIRANG", "Thomas Wesley Pentz~wp~k|Artemas~wp~k|Toby Daintree~wp~k|Jesse Fink~w~k|Kevin White~wp~k|RM~w~k|Kirsten Allyssa Spencer~w~k|Beau Nox~w~k", 0], ["s601555646", "they don’t know ’bout us", "", -0.129, -0.18, 2026, "ARIRANG", "Pdogg~wp~k|Ghstloop~wp~k|Ari Starace~wp~k|RUG~w~k|Kurtis Wells~w~k|Jimin~w~k|RM~w~k|SUGA~w~k|j-hope~w~k", 0], ["s601555647", "One More Night", "", 0.438, 0.499, 2026, "ARIRANG", "Thomas Wesley Pentz~wp~k|Pdogg~wp~k|Beau Nox~w~k|Richard Cook Mears IV~wp~k|RM~w~k|SUGA~w~k|j-hope~w~k|Ant Clemons~w~k|Gregory \"Aldae\" Hein~w~k|Marcus \"MarcLo\" Lomax~w~k", 0], ["s601555648", "Please", "", -0.473, 0.199, 2026, "ARIRANG", "Tyler Spry~wp~k|James Essien~w~k|Ryan Tedder~w~k|RM~w~k|SUGA~w~k|j-hope~w~k", 0], ["s601555649", "Into the Sun", "", -0.319, 0.438, 2026, "ARIRANG", "Pdogg~wp~m|Thomas Wesley Pentz~wp~m|V~w~m|Jimin~w~m|Teezo Touchdown~w~m|Ki-An Dee Kambaran~w~m|Richard Cook Mears IV~wp~m|Tyler Johnson~wp~m|Ghstloop~wp~m|RM~w~m|SUGA~w~m|j-hope~w~m", 0], ["s602246807", "Come Over", "", 0.071, -0.735, 2026, "Come Over", "Henry Walter~wp~k|Joshua Coleman~wp~k|SUGA~wp~k|Jacob Kasher Hindlin~w~k|Gregory \"Aldae\" Hein~w~k|RM~w~k|j-hope~w~k|El Capitxn~w~u", 1]];
+const PICKS=["s30244931", "s32872978", "s32323969", "s31085242", "s31085237", "s33077234"];
+const ROUTE0=["s30244931", "s33719763"];
+const ROLE={w:'词曲',a:'编曲',p:'制作'};
+const SRCL={m:'Melon 与维基百科一致',k:'KOMCA 核对',M:'Melon',u:'人工确认'};
+const SONGS=RAW.map(r=>({id:r[0],t:r[1],k:r[2],e:r[3],v:r[4],y:r[5],al:r[6],tt:r[8],cr:r[7]?r[7].split('|').map(x=>{const [n,ro,s]=x.split('~');return {n,r:ro,s}}):[]}));
+const BYID=Object.fromEntries(SONGS.map(s=>[s.id,s]));
+const CRE={};SONGS.forEach(s=>s.cr.forEach(c=>{(CRE[c.n]=CRE[c.n]||[]).push({id:s.id,r:c.r})}));
+const CNAMES=Object.keys(CRE);
+
+/* ===== 工具 ===== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const px=e=>(e+1)/2*100, py=v=>(1-v)/2*100;
+const clamp=x=>Math.max(-1,Math.min(1,x));
+const dist=(a,b)=>Math.hypot(a.e-b.e,a.v-b.v);
+const roles=r=>r.split('').map(c=>ROLE[c]).join(' · ');
+function hex(h){return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16))}
+function mix(a,b,t){return a.map((x,i)=>x+(b[i]-x)*t)}
+const TL=hex('#B4C58F'),TR=hex('#F3B640'),BL=hex('#356A73'),BR=hex('#C2442A'),MID=hex('#E2D9C6');
+function colorAt(e,v){const u=(e+1)/2,w=(v+1)/2;let c=mix(mix(BL,BR,u),mix(TL,TR,u),w);c=mix(c,MID,Math.max(0,1-Math.hypot(e,v)/1.1)*.55);return 'rgb('+c.map(Math.round).join(',')+')'}
+function tint(e,v,a){return colorAt(e,v).replace('rgb','rgba').replace(')',','+a+')')}
+function desc(e,v){const x=e<-.15?'偏舒缓':e>.15?'偏热烈':'',y=v>.15?'偏明亮':v<-.15?'偏忧郁':'';if(!x&&!y)return '接近中心 · 各种感觉都不强烈';return [x,y].filter(Boolean).join(' · ')}
+function nearest(p,n,skip){return SONGS.filter(s=>!(skip&&skip.has(s.id))).map(s=>({s,d:dist(p,s)})).sort((a,b)=>a.d-b.d).slice(0,n)}
+const listen=t=>'https://y.qq.com/n/ryqq/search?w='+encodeURIComponent('BTS '+t);
+
+/* ===== 状态 ===== */
+const S={view:'map',click:null,near:[],sel:null,showAll:false,draw:null,foot:null,mapRoute:null,
+  dna:{center:null,creator:null,trail:[],hide:false,anim:'none'},
+  route:{a:ROUTE0[0],b:ROUTE0[1],hide:false,excl:'',paths:null,i:0}};
+
+$('#songlist').innerHTML=SONGS.map(s=>`<option value="${esc(s.t)}"></option>`).join('');
+$('#dnalist').innerHTML=SONGS.map(s=>`<option value="${esc(s.t)}">歌曲</option>`).join('')+CNAMES.slice().sort().map(n=>`<option value="${esc(n)}">创作者 · ${CRE[n].length} 首</option>`).join('');
+const findSong=t=>{t=(t||'').trim().toLowerCase();return SONGS.find(s=>s.t.toLowerCase()===t)||SONGS.find(s=>s.t.toLowerCase().startsWith(t)&&t)};
+
+/* ===== 视图切换 ===== */
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.view));
+function go(v){if(v==='dna'&&!S.dna.center&&S.view==='map'&&S.sel){setCenter(S.sel)}S.view=v;document.querySelectorAll('nav.tabs button').forEach(b=>b.toggleAttribute('aria-current',b.dataset.view===v));if(document.querySelector('nav.tabs button[aria-current]'))document.querySelector('nav.tabs button[aria-current]').setAttribute('aria-current','page');render()}
+function render(){stopPlay();if(S.view==='map')renderMapView();else if(S.view==='dna')renderDNA();else if(S.view==='album')renderAlbum();else if(S.view==='mix')renderMix();else renderRoute()}
+
+/* ===== 专辑时光机 ===== */
+const ALB_MERGE={'Skool Luv Affair Special Addition':'Skool Luv Affair'};
+const ALB_LABEL={'FOR YOU':'日语单曲 · FOR YOU','MIC Drop/DNA/Crystal Snow':'日语单曲 · Crystal Snow','FACE YOURSELF':'FACE YOURSELF（日语专辑）','Lights / Boy With Luv':'日语单曲 · Lights','MAP OF THE SOUL : 7 ~THE JOURNEY~':'MAP OF THE SOUL : 7 ~THE JOURNEY~（日语专辑）','BTS, THE BEST':'BTS, THE BEST（日语精选）','BTS WORLD OST':'游戏原声 · Heartbeat','Dynamite (DayTime Version)':'数字单曲 · Dynamite','Butter':'数字单曲 · Butter','Permission to Dance':'数字单曲 · Permission to Dance','Take Two':'数字单曲 · Take Two','Come Over':'数字单曲 · Come Over'};
+const ALBUMS=(()=>{const m=new Map();SONGS.forEach(s=>{const a=ALB_MERGE[s.al]||s.al;if(!m.has(a))m.set(a,{name:ALB_LABEL[a]||a,y:s.y,songs:[]});m.get(a).songs.push(s)});return [...m.values()]})();
+S.album=S.album||{i:ALBUMS.findIndex(a=>a.name==='WINGS'),playing:false};
+let PLAY=null;function stopPlay(){if(PLAY){clearInterval(PLAY);PLAY=null}if(S.album)S.album.playing=false}
+function quadOf(s){return (s.e<0?'舒缓':'热烈')+' · '+(s.v<0?'忧郁':'明亮')}
+const QUADS=[['热烈 · 明亮',.6,.6],['舒缓 · 明亮',-.6,.6],['热烈 · 忧郁',.6,-.6],['舒缓 · 忧郁',-.6,-.6]];
+function shiftDesc(a,b){const ca=centroid(a.songs),cb=centroid(b.songs),de=cb.e-ca.e,dv=cb.v-ca.v,t=[];
+  if(Math.abs(de)>=.12)t.push(de>0?'更热烈':'更舒缓');if(Math.abs(dv)>=.12)t.push(dv>0?'更明亮':'更忧郁');return t.length?t.join('、'):'整体感觉差不多'}
+function renderAlbum(){
+  const A=S.album,al=ALBUMS[A.i],on=new Set(al.songs.map(s=>s.id));
+  const st=$('#stage');
+  st.innerHTML=`<div class="bar"><div><p class="lab">专辑时光机</p><p style="margin:3px 0 0;font-size:22px;font-weight:900">${esc(al.name)} <span style="font-weight:500;color:var(--ink2);font-size:16px">${al.y}</span></p></div>
+   <div style="display:flex;gap:8px"><button class="btn q" id="aPrev" aria-label="上一张">←</button><button class="btn ${A.playing?'p':''}" id="aPlay">${A.playing?'暂停':'▶ 从出道播放'}</button><button class="btn q" id="aNext" aria-label="下一张">→</button></div></div>
+   <div class="amap" id="amap">${FIELD}<div id="alayer"></div></div>
+   <div class="tl" id="tl" role="group" aria-label="专辑时间线">${ALBUMS.map((a,i)=>`<button class="chip" data-ai="${i}" aria-pressed="${i===A.i}"><b>${esc(a.name)}</b><span>${a.y} · ${a.songs.length} 首</span></button>`).join('')}</div>`;
+  const L=$('#alayer');
+  L.innerHTML=SONGS.map(s=>`<button class="adot" data-aid="${s.id}" style="left:${px(s.e)}%;top:${py(s.v)}%" tabindex="-1" aria-hidden="true"></button>`).join('')+'<div id="alabels"></div>';
+  paintAlbum(true);
+  const chip=$('#tl').querySelector('[aria-pressed="true"]');if(chip)chip.scrollIntoView({block:'nearest',inline:'center'});
+  $('#tl').onclick=e=>{const b=e.target.closest('[data-ai]');if(!b)return;stopPlay();A.i=+b.dataset.ai;updateAlbum()};
+  $('#aPrev').onclick=()=>{stopPlay();A.i=(A.i-1+ALBUMS.length)%ALBUMS.length;updateAlbum()};
+  $('#aNext').onclick=()=>{stopPlay();A.i=(A.i+1)%ALBUMS.length;updateAlbum()};
+  $('#aPlay').onclick=()=>{if(A.playing){stopPlay();updateAlbum();return}A.i=0;A.playing=true;updateAlbum();PLAY=setInterval(()=>{if(A.i>=ALBUMS.length-1){stopPlay();updateAlbum();return}A.i++;updateAlbum()},2400)};
+  L.onclick=e=>{const d=e.target.closest('.adot.on');if(!d)return;stopPlay();const s=BYID[d.dataset.aid];S.draw=null;S.foot=null;S.mapRoute=null;S.view='map';go('map');pickAt(s.e,s.v,s.id)};
+  renderAlbumPanel();
+}
+function updateAlbum(){
+  const A=S.album;
+  $('#tl').querySelectorAll('[data-ai]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.ai===A.i));
+  const chip=$('#tl').querySelector('[aria-pressed="true"]');if(chip)chip.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+  const al=ALBUMS[A.i];$('#stage .bar').firstElementChild.innerHTML=`<p class="lab">专辑时光机</p><p style="margin:3px 0 0;font-size:22px;font-weight:900">${esc(al.name)} <span style="font-weight:500;color:var(--ink2);font-size:16px">${al.y}</span></p>`;
+  const pb=$('#aPlay');pb.textContent=A.playing?'暂停':'▶ 从出道播放';pb.classList.toggle('p',A.playing);
+  paintAlbum(false);renderAlbumPanel();
+}
+function paintAlbum(){
+  const al=ALBUMS[S.album.i],on=new Set(al.songs.map(s=>s.id));
+  document.querySelectorAll('.adot').forEach(d=>{const s=BYID[d.dataset.aid],o=on.has(s.id);d.classList.toggle('on',o);d.classList.toggle('tt',o&&!!s.tt);d.style.background=o?colorAt(s.e,s.v):'';d.tabIndex=o?0:-1;d.setAttribute('aria-hidden',!o);if(o)d.setAttribute('aria-label',s.t+'，在情绪地图打开')});
+  const box=$('#alabels');box.innerHTML=al.songs.map(s=>`<div class="alb ${s.tt?'tt':''}" style="left:0;top:0;visibility:hidden">${esc(s.t)}</div>`).join('');
+  const m=$('#amap'),mob=matchMedia('(max-width:860px)').matches;
+  placeDom(m,[...box.children].map((el,i)=>{const s=al.songs[i];return {el,x:px(s.e)/100,y:py(s.v)/100,r:(s.tt?(mob?8:11):(mob?6:8))+3,prio:s.tt?0:1}}),al.songs.map(s=>({x:px(s.e)/100,y:py(s.v)/100,r:s.tt?11:8})));
+}
+function renderAlbumPanel(){
+  const A=S.album,al=ALBUMS[A.i],n=al.songs.length,prev=A.i>0?ALBUMS[A.i-1]:null;
+  const qc={};al.songs.forEach(s=>{const q=quadOf(s);qc[q]=(qc[q]||0)+1});
+  const top=QUADS.slice().sort((a,b)=>(qc[b[0]]||0)-(qc[a[0]]||0))[0][0];
+  const tts=al.songs.filter(s=>s.tt);
+  let h=`<div class="sec"><p class="lab">${al.y} · ${n} 首</p><h2 class="serif" style="margin:4px 0 0;font-size:${al.name.length>18?30:40}px;line-height:1.05">${esc(al.name)}</h2>
+   ${tts.length?`<p style="margin:6px 0 0;font-size:14px;color:var(--ink2)">主打：${tts.map(s=>esc(s.t)).join('、')}</p>`:''}
+   <p style="margin:8px 0 0;font-size:15px;line-height:1.6">${n>1?`这张专辑的歌多在 <b>${top}</b>${prev?`，比上一张《${esc(prev.name)}》<b>${shiftDesc(prev,al)}</b>`:''}。`:`这首歌在 <b>${quadOf(al.songs[0])}</b>。`}</p></div>
+   <div class="sec"><p class="lab">四块各有几首</p>${QUADS.map(([q,e,v])=>`<div class="qbar"><i class="sw" style="background:${colorAt(e,v)}"></i><span>${q}</span><span class="tr"><i style="width:${(qc[q]||0)/n*100}%"></i></span><span class="mono" style="font-size:12px;text-align:right">${qc[q]||0}</span></div>`).join('')}</div>
+   <div class="sec"><p class="lab">收录的歌 · 点击在情绪地图打开</p>${al.songs.map(s=>`<button class="row" data-goto="${s.id}" style="grid-template-columns:12px minmax(0,1fr) auto"><i class="sw" style="background:${colorAt(s.e,s.v)}"></i><span>${esc(s.t)}${s.tt?' <span class="mono" style="font-size:10px;color:var(--ink2)">主打</span>':''}</span><span class="mono" style="font-size:11px;color:var(--ink2)">${desc(s.e,s.v)}</span></button>`).join('')}</div>
+   <div class="sec" style="margin-top:auto"><p class="note">按「从出道播放」，会从 2013 年开始一张张往后翻，看 BTS 的声音怎么一路变化。</p></div>`;
+  const P=$('#panel');P.innerHTML=h;
+  P.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>{stopPlay();const s=BYID[b.dataset.goto];S.draw=null;S.foot=null;S.mapRoute=null;go('map');pickAt(s.e,s.v,s.id)});
+}
+
+/* ===== 第一页：创作者 + 同制作人推荐 ===== */
+function creditsBlock(s){
+  if(!s.cr.length)return `<div class="sec"><p class="lab">创作者</p><p class="note">这首歌的署名还在补充中。</p></div>`;
+  const g={w:[],a:[],p:[]};s.cr.forEach(c=>c.r.split('').forEach(r=>g[r]&&g[r].push(c.n)));
+  return `<div class="sec"><p class="lab">谁写的</p>${[['w','词曲'],['a','编曲'],['p','制作']].filter(([k])=>g[k].length).map(([k,l])=>`<div class="cr"><span class="mono" style="color:var(--ink2)">${l}</span><span>${g[k].map(n=>MEMBERS.has(n)?`<b>${esc(n)}</b>`:esc(n)).join(' · ')}</span></div>`).join('')}</div>`;
+}
+function styleRecs(s){
+  const mine=new Set(s.cr.filter(c=>!MEMBERS.has(c.n)).map(c=>c.n));if(!mine.size)return [];
+  const skip=new Set([s.id,...S.near.map(n=>n.s.id)]);
+  return SONGS.filter(x=>!skip.has(x.id)).map(x=>({x,sh:x.cr.filter(c=>mine.has(c.n)).map(c=>c.n),d:dist(x,s)})).filter(o=>o.sh.length).sort((a,b)=>a.d-b.d).slice(0,3);
+}
+function styleRecsBlock(s){
+  const r=styleRecs(s);
+  return `<div class="sec"><p class="lab">喜欢这种风格？</p><p style="margin:0 0 4px;font-size:13px;color:var(--ink2);line-height:1.6">同一位制作人写的、感觉最接近的歌（不计成员）</p>
+   ${r.length?r.map(o=>`<button class="row" data-goto="${o.x.id}" style="grid-template-columns:12px minmax(0,1fr) auto"><i class="sw" style="background:${colorAt(o.x.e,o.x.v)}"></i><span>${esc(o.x.t)}<span style="display:block;font-size:12px;color:var(--ink2);font-weight:400">${o.sh.slice(0,2).map(esc).join(' · ')}</span></span><span class="mono" style="font-size:11px;color:var(--ink2)">${o.x.y}</span></button>`).join(''):'<p class="note">这首歌没有其他成员以外的创作者，暂时找不到同制作人的歌。</p>'}</div>`;
+}
+
+/* ===== 自制专辑 ===== */
+S.mix=S.mix||{list:[],name:'',_autoName:''};
+function renderMix(){
+  const M=S.mix;
+  $('#stage').innerHTML=`<div class="bar"><div style="flex:1;min-width:220px"><p class="lab">自制专辑 · 在地图上挑 7 首歌</p>
+    <label class="fld" style="height:44px;margin-top:6px;max-width:420px"><span class="sr">专辑名</span><input id="mixName" maxlength="28" placeholder="给你的专辑起个名字" value="${esc(M.name)}" style="font-size:18px;font-weight:700" autocomplete="off"></label></div>
+    <div style="display:flex;gap:8px;align-items:center"><span class="mono" id="mixCnt" style="font-size:13px">${M.list.length} / 7</span><button class="btn q" id="mixDip">✦ 北斗七星</button><button class="btn q" id="mixRnd">随机补满</button><button class="btn q" id="mixClr">清空</button></div></div>
+   <div class="mapwrap" id="mmap" style="cursor:default">${FIELD}<svg id="msv" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg><div id="mlayer"></div></div>
+   <div style="padding-top:12px;max-width:420px"><label class="fld" style="height:40px"><span class="sr">搜歌名加入</span><input id="mixSearch" placeholder="搜歌名加入专辑" autocomplete="off"></label></div>`;
+  paintMixMap();renderMixPanel();
+  $('#mixName').oninput=e=>{M.name=e.target.value;clearTimeout(M._t);M._t=setTimeout(drawCover,250)};
+  $('#mixClr').onclick=()=>{M.list=[];M.shape=null;refreshMix()};
+  $('#mixRnd').onclick=()=>{M.shape=null;const pool=SONGS.filter(s=>!M.list.includes(s.id));while(M.list.length<7&&pool.length){M.list.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0].id)}refreshMix()};
+  $('#mixDip').onclick=()=>{const r=dipper();M.list=r;M.shape='dipper';if(!M.name||M.name===M._autoName){M.name='北斗七星';M._autoName='北斗七星';$('#mixName').value=M.name}refreshMix()};
+  $('#mlayer').onclick=e=>{const d=e.target.closest('[data-mid]');if(d)toggleMix(d.dataset.mid)};
+  combo($('#mixSearch'),SONG_ITEMS,it=>{toggleMix(it.id,true);$('#mixSearch').value=''});
+}
+function toggleMix(id,addOnly){const L=S.mix.list,i=L.indexOf(id);if(i>=0){if(!addOnly){L.splice(i,1);S.mix.shape=null}}else if(L.length<7)L.push(id);S.mix.shape=null;refreshMix()}
+function refreshMix(){paintMixMap();renderMixPanel();const c=$('#mixCnt');if(c)c.textContent=S.mix.list.length+' / 7'}
+function paintMixMap(){
+  const L=S.mix.list;
+  $('#mlayer').innerHTML=SONGS.map(s=>{const i=L.indexOf(s.id);return i>=0?`<button class="mdot on" data-mid="${s.id}" style="left:${px(s.e)}%;top:${py(s.v)}%;background:${colorAt(s.e,s.v)}" aria-label="${esc(s.t)}，第 ${i+1} 首，点击移除">${i+1}</button><div class="mlab" data-for="${s.id}" style="left:0;top:0;visibility:hidden">${esc(s.t)}</div>`:`<button class="mdot" data-mid="${s.id}" style="left:${px(s.e)}%;top:${py(s.v)}%" title="${esc(s.t)}" aria-label="加入 ${esc(s.t)}"></button>`}).join('');
+  {const m=$('#mmap'),labs=[...$('#mlayer').querySelectorAll('.mlab')];placeDom(m,labs.map(el=>{const s=BYID[el.dataset.for];return {el,x:px(s.e)/100,y:py(s.v)/100,r:15,prio:0}}),L.map(id=>({x:px(BYID[id].e)/100,y:py(BYID[id].v)/100,r:12})))}
+  const pts=pathIdx(L.length).map(i=>BYID[L[i]]).map(s=>`${px(s.e)},${py(s.v)}`).join(' ');
+  $('#msv').innerHTML=L.length>1?`<polyline points="${pts}" fill="none" stroke="#1C1B18" stroke-width="1.5" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`:'';
+}
+function renderMixPanel(){
+  const M=S.mix,L=M.list.map(id=>BYID[id]);
+  $('#panel').innerHTML=`<div class="sec"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><p class="lab">封面预览</p><div class="seg" role="group" aria-label="封面版本"><button data-cv="plain" aria-pressed="${(S.mix.cv||'plain')==='plain'}">简洁</button><button data-cv="named" aria-pressed="${S.mix.cv==='named'}">标出歌名</button></div></div><img class="cover" id="coverImg" alt="根据所选歌曲生成的专辑封面"><canvas id="coverCv" width="1200" height="1200" hidden></canvas>
+    <button class="btn p big" id="coverSave" ${L.length?'':'disabled'}>保存封面图片 <span>↓</span></button><p class="note" id="saveNote">封面的颜色来自每首歌在地图上的位置，连线是它们的顺序。</p></div>
+   <div class="sec"><p class="lab">曲目 · ${L.length} / 7</p>${L.length?L.map((s,i)=>`<div class="trk2"><span class="mono" style="font-size:12px">${i+1}</span><i class="sw" style="background:${colorAt(s.e,s.v)}"></i><span>${esc(s.t)}<span style="display:block;font-size:11px;color:var(--ink2)">${s.y} · ${desc(s.e,s.v)}</span></span><button data-up="${i}" aria-label="上移" ${i?'':'disabled'}>↑</button><button data-rm="${s.id}" aria-label="移除">✕</button></div>`).join(''):'<p class="note">在地图上点白色小点，或者用下面的搜索框加歌。也可以先按「随机补满」看看效果。</p>'}</div>`;
+  const P=$('#panel');
+  P.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>toggleMix(b.dataset.rm));
+  P.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{const i=+b.dataset.up,l=S.mix.list;[l[i-1],l[i]]=[l[i],l[i-1]];S.mix.shape=null;refreshMix()});
+  P.querySelectorAll('[data-cv]').forEach(b=>b.onclick=()=>{S.mix.cv=b.dataset.cv;P.querySelectorAll('[data-cv]').forEach(x=>x.setAttribute('aria-pressed',x===b));drawCover()});
+  $('#coverSave').onclick=saveCover;
+  drawCover();
+}
+const CTL=[150,196,92],CTR=[248,178,30],CBL=[24,98,160],CBR=[220,60,34];
+function coverRGB(e,v){const u=(e+1)/2,w=(v+1)/2;return mix(mix(CBL,CBR,u),mix(CTL,CTR,u),w)}
+function rgb2hsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h=0,s=0;const l=(mx+mn)/2;if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h/=6}return [h,s,l]}
+function hsl2rgb(h,s,l){const f=n=>{const k=(n+h*12)%12,a=s*Math.min(l,1-l);return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1))))};return [f(0),f(8),f(4)]}
+function coverColor(e,v){const u=(e+1)/2,w=(v+1)/2;const c=mix(mix(CBL,CBR,u),mix(CTL,CTR,u),w);return 'rgb('+c.map(Math.round).join(',')+')'}
+function pathIdx(n){return S.mix.shape==='dipper'&&n===7?[0,1,2,3,4,5,6,3]:[...Array(n).keys()]}
+/* 北斗七星：斗柄 摇光→开阳→玉衡→天权，斗身 天枢→天璇→天玑（再接回天权） */
+const DIPPER=[[-1.00,.05],[-.62,.24],[-.33,.30],[-.05,.30],[.10,.62],[.62,.66],[.55,.30]];
+function dipper(){
+  const cand=[];
+  for(let t=0;t<2500;t++){
+    const s=.45+Math.random()*.5,th=(Math.random()-.5)*1.2,fl=Math.random()<.5?1:-1,cx=(Math.random()-.5)*.8,cy=(Math.random()-.5)*.8;
+    const pts=DIPPER.map(([x,y])=>{x*=fl;return {e:cx+s*(x*Math.cos(th)-y*Math.sin(th)),v:cy+s*(x*Math.sin(th)+y*Math.cos(th))}});
+    if(pts.some(p=>Math.abs(p.e)>.95||Math.abs(p.v)>.95))continue;
+    const used=new Set(),ids=[];let cost=0;
+    for(const p of pts){let best=null,bd=9;for(const so of SONGS){if(used.has(so.id))continue;const d=dist(p,so);if(d<bd){bd=d;best=so}}used.add(best.id);ids.push(best.id);cost+=bd*bd}
+    cand.push({ids,cost:cost/s/s});
+  }
+  cand.sort((a,b)=>a.cost-b.cost);const seen=new Set(),top=[];for(const c of cand){const k=c.ids.slice().sort().join();if(seen.has(k))continue;seen.add(k);top.push(c);if(top.length>=10)break}
+  return top[Math.floor(Math.random()*top.length)].ids;
+}
+/* 标签避让：依次试右、左、上、下和斜上斜下，避开已放的标签和所有点；实在放不下就不显示 */
+function placeBoxes(W,H,items,dots,lim){
+  lim=lim||{};const top=lim.top||2,bottom=lim.bottom||H-2,placed=(lim.block||[]).slice(),out=new Array(items.length).fill(null);
+  const hit=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+  const dotBoxes=dots.map(d=>({x:d.x-d.r,y:d.y-d.r,w:2*d.r,h:2*d.r}));
+  items.map((it,i)=>[it,i]).sort((a,b)=>a[0].prio-b[0].prio||a[0].x-b[0].x).forEach(([it,i])=>{
+    const {x,y,r,w,h}=it,g=4;
+    const cands=[[x+r+g,y-h/2],[x-r-g-w,y-h/2],[x-w/2,y-r-g-h],[x-w/2,y+r+g],[x+r+g,y-h-r*.4],[x+r+g,y+r*.4],[x-r-g-w,y-h-r*.4],[x-r-g-w,y+r*.4]];
+    for(const [bx,by] of cands){const b={x:bx,y:by,w,h};
+      if(bx<2||bx+w>W-2||by<top||by+h>bottom)continue;
+      if(placed.some(p=>hit(b,p)))continue;
+      if(dotBoxes.some(d=>hit({x:b.x+1,y:b.y+1,w:b.w-2,h:b.h-2},d)))continue;
+      placed.push(b);out[i]=b;return}
+  });
+  return out;
+}
+function placeDom(container,labs,dots){
+  const R=container.getBoundingClientRect(),W=R.width,H=R.height;
+  const items=labs.map(l=>({x:l.x*W,y:l.y*H,r:l.r,w:l.el.offsetWidth,h:l.el.offsetHeight,prio:l.prio}));
+  const block=[...container.querySelectorAll('.axl')].map(a=>{const r=a.getBoundingClientRect();return {x:r.left-R.left-2,y:r.top-R.top-2,w:r.width+4,h:r.height+4}});
+  const pl=placeBoxes(W,H,items,dots.map(d=>({x:d.x*W,y:d.y*H,r:d.r})),{block});
+  labs.forEach((l,i)=>{const b=pl[i];if(!b){l.el.hidden=true;return}l.el.style.left=b.x+'px';l.el.style.top=b.y+'px';l.el.style.visibility=''});
+}
+let _rz;window.addEventListener('resize',()=>{clearTimeout(_rz);_rz=setTimeout(()=>{if(S.view==='album'&&$('#alabels'))paintAlbum();else if(S.view==='mix'&&$('#mlayer'))paintMixMap()},150)});
+function hash(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){return()=>{seed=(seed+0x6D2B79F5)|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+async function drawCover(){
+  const cv=$('#coverCv'),img=$('#coverImg');if(!cv||!img)return;
+  const M=S.mix,L=M.list.map(id=>BYID[id]),W=1200,c=cv.getContext('2d');
+  try{await document.fonts.ready}catch(e){}
+  const R=rng(hash(M.list.join()+M.name));
+  c.fillStyle='#EEE9DF';c.fillRect(0,0,W,W);
+  const P=L.map(s=>({s,x:(s.e+1)/2*W*.9+W*.05,y:(1-s.v)/2*W*.9+W*.05}));
+  // 背景直接用情绪地图同一套色场（和上面的地图完全同色），歌曲只决定星座落在哪里
+  const FL=[[60,70,4,6,'180,197,143'],[55,65,96,4,'243,182,64'],[40,45,70,35,'240,201,160'],[60,70,3,97,'53,106,115'],[45,50,30,72,'143,169,166'],[60,70,98,98,'194,68,42'],[35,40,78,70,'217,138,106']];
+  // 选中的歌离哪块颜色近，那块颜色就画得更大；四个角的颜色最小也保留 0.7 倍，保证四种颜色都看得到
+  const wt=FL.map(([rx,ry,cx,cy])=>{let s=.15;P.forEach(p=>{const dx=p.x/W*100-cx,dy=p.y/W*100-cy;s+=Math.exp(-(dx*dx+dy*dy)/(2*38*38))});return s});
+  const CORNER=[0,1,3,5],mean=CORNER.reduce((a,i)=>a+wt[i],0)/4||1;
+  c.fillStyle='#E8DFCC';c.fillRect(0,0,W,W);
+  FL.map((f,i)=>[f,i]).reverse().forEach(([[rx,ry,cx,cy,rgb],i])=>{const k=P.length&&CORNER.includes(i)?Math.max(.7,Math.min(1.9,Math.pow(wt[i]/mean,.7))):1;c.save();c.translate(cx/100*W,cy/100*W);c.scale(1,ry/rx);const r=rx/100*W*k,g=c.createRadialGradient(0,0,0,0,0,r);g.addColorStop(0,`rgba(${rgb},1)`);g.addColorStop(.7,`rgba(${rgb},0)`);c.fillStyle=g;c.fillRect(-r,-r,2*r,2*r);c.restore()});
+  c.fillStyle='rgba(244,240,232,.22)';c.fillRect(0,0,W,W);
+  P.forEach(p=>{const g=c.createRadialGradient(p.x,p.y,0,p.x,p.y,150);g.addColorStop(0,'rgba(251,249,244,.32)');g.addColorStop(1,'rgba(251,249,244,0)');c.fillStyle=g;c.fillRect(0,0,W,W)});
+  const id=c.getImageData(0,0,W,W),d=id.data;for(let i=0;i<d.length;i+=4){const n=(R()-.5)*22;d[i]+=n;d[i+1]+=n;d[i+2]+=n}c.putImageData(id,0,0);
+  if(!L.length){c.fillStyle='rgba(28,27,24,.35)';c.font='500 40px "Hanken Grotesk","Noto Sans SC",sans-serif';c.textAlign='center';c.fillText('挑几首歌，封面会出现在这里',W/2,W/2)}
+  const DK=M.ink!=='light';
+  if(P.length>1){c.strokeStyle=DK?'rgba(28,27,24,.8)':'rgba(251,249,244,.9)';c.lineWidth=DK?2.5:3;c.setLineDash([]);c.beginPath();pathIdx(P.length).forEach((k,i)=>i?c.lineTo(P[k].x,P[k].y):c.moveTo(P[k].x,P[k].y));c.stroke()}
+  P.forEach(p=>{c.fillStyle=DK?'#1C1B18':'#FBF9F4';c.beginPath();c.arc(p.x,p.y,DK?9:10,0,Math.PI*2);c.fill();c.strokeStyle=DK?'rgba(251,249,244,.8)':'rgba(28,27,24,.6)';c.lineWidth=DK?3:2;c.stroke()});
+  if(M.cv==='named'){try{await document.fonts.load('400 30px "Noto Serif SC"')}catch(e){}c.font='600 30px "Noto Serif SC","Songti SC",serif';c.fillStyle=DK?'#1C1B18':'#FFFFFF';c.shadowColor=DK?'rgba(251,249,244,.75)':'rgba(28,27,24,.6)';c.shadowBlur=DK?8:6;
+    c.textAlign='left';c.textBaseline='top';const pl=placeBoxes(W,W,P.map(p=>({x:p.x,y:p.y,r:20,w:c.measureText(p.s.t).width,h:34,prio:0})),P.map(p=>({x:p.x,y:p.y,r:12})),{top:140,bottom:W-230});pl.forEach((b,i)=>{if(b)c.fillText(P[i].s.t,b.x,b.y)});c.textBaseline='alphabetic';c.shadowBlur=0}
+  c.shadowBlur=0;c.fillStyle='rgba(28,27,24,.78)';c.textAlign='left';c.font='500 26px "IBM Plex Mono",monospace';c.fillText('BORAMAP',64,92);
+  if(L.length){const ys=L.map(s=>s.y);c.textAlign='right';c.fillText(`${L.length} TRACKS · ${Math.min(...ys)}–${Math.max(...ys)}`,W-64,92)}
+  const title=(M.name||'').trim()||'ARMY';
+  if(title){if(!DK){const sg=c.createLinearGradient(0,W*.66,0,W);sg.addColorStop(0,'rgba(28,27,24,0)');sg.addColorStop(1,'rgba(28,27,24,.28)');c.shadowBlur=0;c.fillStyle=sg;c.fillRect(0,W*.66,W,W*.34)}c.textAlign='left';c.fillStyle=DK?'#1C1B18':'#FFFFFF';c.shadowColor=DK?'rgba(251,249,244,.6)':'rgba(28,27,24,.5)';c.shadowBlur=DK?18:16;try{await document.fonts.load('600 120px "Noto Serif SC"',title)}catch(e){}let fs=title.length>14?78:title.length>8?104:132;c.font=`600 ${fs}px "Noto Serif SC","Songti SC",serif`;while(c.measureText(title).width>W-128&&fs>40){fs-=6;c.font=`600 ${fs}px "Noto Serif SC","Songti SC",serif`}c.fillText(title,64,W-80)}c.shadowBlur=0;
+  img.src=cv.toDataURL('image/png');
+}
+async function saveCover(){
+  const cv=$('#coverCv'),note=$('#saveNote');if(!cv)return;
+  let dl=null;try{dl=await window.claude?.use?.('downloads')}catch(e){}
+  const name=((S.mix.name||'my-boramap-album').trim().replace(/[\\/:*?"<>|]/g,'')||'my-boramap-album')+'.png';
+  if(!dl){cv.toBlob(async b=>{const file=new File([b],name,{type:'image/png'});
+      try{if(navigator.canShare&&navigator.canShare({files:[file]})&&matchMedia('(pointer:coarse)').matches){await navigator.share({files:[file],title:name});note.textContent='已打开分享，选「存储图像」就能存到相册。';return}}catch(e){if(e&&e.name==='AbortError'){note.textContent='已取消。';return}}
+      const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);note.textContent='已保存到下载文件夹。'},'image/png');return}
+  cv.toBlob(async b=>{try{await dl.save({filename:name,data:b});note.textContent='已保存。'}catch(e){note.textContent=e&&e.code==='declined'?'已取消保存。':'这里不能直接下载，可以长按或右键封面图片保存。'}},'image/png');
+}
+
+/* ===== 情绪地图 ===== */
+const FIELD=`<div class="field"></div><svg class="grain" aria-hidden="true"><filter id="gr"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0"/></filter><rect width="100%" height="100%" filter="url(#gr)"/></svg><div class="rings"></div><div class="axh"></div><div class="axv"></div>
+<div class="axl" style="left:12px;top:50%;transform:translateY(-50%);color:#3F5A2A">舒缓<small>慢 · 轻柔</small></div>
+<div class="axl" style="right:12px;top:50%;transform:translateY(-50%);color:#8E2A12">热烈<small>强烈 · 高能量</small></div>
+<div class="axl" style="left:50%;top:12px;transform:translateX(-50%);color:#7A5000">明亮<small>欢快 · 温暖</small></div>
+<div class="axl" style="left:50%;bottom:12px;transform:translateX(-50%);color:#1F4A51">忧郁<small>深沉 · 伤感</small></div>`;
+
+function renderMapView(){
+  const st=$('#stage');
+  let bar;
+  if(S.draw){
+    bar=`<div><p class="lab">情绪路线</p><p style="margin:3px 0 0;font-size:22px;font-weight:900">${S.draw.stage==='a'?'点地图，选择起点':S.draw.stage==='b'?'再点一下，选择终点':'从 '+desc(S.draw.a.e,S.draw.a.v)+' 到 '+desc(S.draw.b.e,S.draw.b.v)}</p></div>
+    <div style="display:flex;gap:8px"><button class="btn q" id="drawReset">重新画</button><button class="btn" id="drawExit">退出路线</button></div>`;
+  }else if(S.foot){
+    bar=`<div><p class="lab">创作者足迹</p><p style="margin:3px 0 0;font-size:22px;font-weight:900">${esc(S.foot)} 参与的歌在哪里</p></div><button class="btn" id="footExit">关闭足迹</button>`;
+  }else if(S.mapRoute){
+    bar=`<div><p class="lab">歌曲连线</p><p style="margin:3px 0 0;font-size:22px;font-weight:900">这条路线在地图上的走向</p></div><button class="btn" id="mrExit">关闭路线</button>`;
+  }else if(S.click){
+    bar=`<div style="display:flex;align-items:center;gap:14px"><span style="width:28px;height:28px;border-radius:50%;background:${colorAt(S.click.e,S.click.v)};border:1.5px solid var(--ink);flex:none"></span><div><p class="lab">你点的位置</p><p style="margin:3px 0 0;font-size:22px;font-weight:900">${desc(S.click.e,S.click.v)}</p></div></div>
+    <div style="display:flex;gap:8px"><button class="btn q" id="clearBtn">清除</button><button class="btn" id="rndBtn2">再随机点一下</button></div>`;
+  }else{
+    bar=`<h1 style="margin:0;font-size:26px;font-weight:900;text-wrap:balance">想听什么感觉的 BTS？<span style="color:var(--ink2);font-weight:500">　在地图上点一下。</span></h1>
+    <ol style="list-style:none;margin:0;padding:0;display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--ink2)"><li><b class="mono" style="color:var(--ink);font-weight:500;margin-right:6px">1</b>点任意位置</li><li><b class="mono" style="color:var(--ink);font-weight:500;margin-right:6px">2</b>听最接近的歌</li><li><b class="mono" style="color:var(--ink);font-weight:500;margin-right:6px">3</b>看是谁写的</li></ol>`;
+  }
+  const busy=S.click||S.draw||S.foot||S.mapRoute;
+  st.innerHTML=`<div class="bar">${bar}</div><div class="mapwrap ${busy?'dim':''}" id="map" role="application" aria-label="情绪地图：点击任意位置推荐最接近的歌">${FIELD}<svg id="msvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg><div id="layer"></div><div id="hover" hidden></div></div>`;
+  bindMapBar();
+  const map=$('#map');
+  map.addEventListener('click',onMapClick);
+  map.addEventListener('mousemove',ev=>{const h=$('#hover');if(ev.target.closest('[data-pick]')){h.hidden=true;return}const r=map.getBoundingClientRect(),x=ev.clientX-r.left,y=ev.clientY-r.top;const e=x/r.width*2-1,v=1-y/r.height*2;h.hidden=false;h.style.left=Math.min(x,r.width-190)+'px';h.style.top=Math.min(y,r.height-50)+'px';h.textContent=(S.draw&&S.draw.stage!=='done'?(S.draw.stage==='a'?'起点：':'终点：'):'点击 · ')+desc(e,v)});
+  map.addEventListener('mouseleave',()=>{$('#hover').hidden=true});
+  drawMapLayer();
+  renderMapPanel();
+}
+function bindMapBar(){
+  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
+  on('drawReset',()=>{S.draw={stage:'a'};render()});
+  on('drawExit',()=>{S.draw=null;render()});
+  on('footExit',()=>{S.foot=null;render()});
+  on('mrExit',()=>{S.mapRoute=null;render()});
+  on('clearBtn',()=>{S.click=null;S.sel=null;render()});
+  on('rndBtn2',randomPick);
+}
+let _hint=false;try{_hint=localStorage.getItem('boramap-hint')==='1'}catch(e){}
+function hintDone(){return _hint}
+function setHintDone(){_hint=true;try{localStorage.setItem('boramap-hint','1')}catch(e){}}
+function onMapClick(ev){
+  const pk=ev.target.closest('[data-pick]');
+  if(pk){const s=BYID[pk.dataset.pick];if(S.foot||S.mapRoute||S.showAll&&!S.click){S.foot=null;S.mapRoute=null;pickAt(s.e,s.v,s.id)}else{if(s.id!==S.sel)setHintDone();S.sel=s.id;renderMapPanel();drawMapLayer()}return}
+  const r=ev.currentTarget.getBoundingClientRect();
+  const e=clamp((ev.clientX-r.left)/r.width*2-1),v=clamp(1-(ev.clientY-r.top)/r.height*2);
+  if(S.draw){
+    if(S.draw.stage==='a')S.draw={stage:'b',a:{e,v}};
+    else if(S.draw.stage==='b'){S.draw.b={e,v};S.draw.stage='done';S.draw.list=playlist(S.draw.a,S.draw.b,S.draw.n||8)}
+    else S.draw={stage:'b',a:{e,v},n:S.draw.n};
+    render();return;
+  }
+  S.foot=null;S.mapRoute=null;pickAt(e,v);
+}
+function pickAt(e,v,selId){S.click={e,v};S.near=nearest({e,v},6);S.sel=selId||S.near[0].s.id;S.anim=Date.now();render()}
+function randomPick(){pickAt(Math.random()*1.8-.9,Math.random()*1.8-.9)}
+function playlist(a,b,n){const used=new Set(),out=[];for(let i=0;i<n;i++){const t=i/(n-1),p={e:a.e+(b.e-a.e)*t,v:a.v+(b.v-a.v)*t};const hit=nearest(p,1,used)[0];used.add(hit.s.id);out.push(hit.s)}return out}
+
+function drawMapLayer(){
+  const map=$('#map');if(!map)return;
+  const W=map.clientWidth,H=map.clientHeight,L=$('#layer'),V=$('#msvg');
+  let h='',sv='';const placed=[];
+  const X=e=>(e+1)/2*W,Y=v=>(1-v)/2*H;
+  function place(x,y,w,ht,prefs){for(const p of prefs){let bx,by;if(p==='r'){bx=x+13;by=y-ht/2}else if(p==='l'){bx=x-13-w;by=y-ht/2}else if(p==='b'){bx=x-w/2;by=y+14}else if(p==='br'){bx=x+10;by=y+12}else if(p==='bl'){bx=x-10-w;by=y+12}else{bx=x-w/2;by=y-14-ht}
+    if(bx<4||by<4||bx+w>W-4||by+ht>H-4)continue;
+    if(!placed.some(q=>bx<q[0]+q[2]&&bx+w>q[0]&&by<q[1]+q[3]&&by+ht>q[1])){placed.push([bx,by,w,ht]);return [bx,by]}}return null}
+  const tw=(t,size)=>t.length*size*.56+8;
+  if(S.showAll&&!S.foot&&!S.mapRoute){SONGS.forEach(s=>{h+=`<button class="dot all" data-pick="${s.id}" style="left:${px(s.e)}%;top:${py(s.v)}%" title="${esc(s.t)}" aria-label="${esc(s.t)}"></button>`})}
+
+  if(S.draw){
+    const d=S.draw;
+    if(d.stage==='a')h+=`<div class="hint">点地图，选择起点</div>`;
+    if(d.a){placed.push([X(d.a.e)-13,Y(d.a.v)-13,26,26])}if(d.b){placed.push([X(d.b.e)-13,Y(d.b.v)-13,26,26])}
+    if(d.a)h+=`<div class="pin" style="left:${px(d.a.e)}%;top:${py(d.a.v)}%">A</div>`;
+    if(d.stage==='b')h+=`<div class="hint">再点一下，选择终点</div>`;
+    if(d.stage==='done'){
+      sv+=`<line x1="${px(d.a.e)}" y1="${py(d.a.v)}" x2="${px(d.b.e)}" y2="${py(d.b.v)}" stroke="#1C1B18" stroke-width="1" stroke-dasharray="3 5" vector-effect="non-scaling-stroke" opacity=".6"/>`;
+      sv+=`<polyline points="${d.list.map(s=>px(s.e)+','+py(s.v)).join(' ')}" fill="none" stroke="#1C1B18" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+      h+=`<div class="pin" style="left:${px(d.b.e)}%;top:${py(d.b.v)}%">B</div>`;
+      d.list.forEach((s,i)=>{const x=X(s.e),y=Y(s.v);placed.push([x-12,y-12,24,24]);h+=`<button class="pin pop" data-pick="${s.id}" style="left:${px(s.e)}%;top:${py(s.v)}%;animation-delay:${i*70}ms" aria-label="${i+1}. ${esc(s.t)}">${i+1}</button>`});
+      d.list.forEach((s,i)=>{const x=X(s.e),y=Y(s.v),w=tw(s.t,13);const p=place(x,y,w,20,['r','l','t','b']);if(p)h+=`<div class="lbl pop" style="left:${p[0]}px;top:${p[1]}px;animation-delay:${i*70+80}ms">${esc(s.t)}</div>`});
+    }
+  }else if(S.foot){
+    const list=CRE[S.foot].map(x=>BYID[x.id]);
+    const hull=convex(list.map(s=>[px(s.e),py(s.v)]));
+    if(hull.length>2)sv+=`<polygon points="${hull.map(p=>p.join(',')).join(' ')}" fill="rgba(28,27,24,.08)" stroke="#1C1B18" stroke-width="1.2" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`;
+    const c=centroid(list);sv+=`<path d="M${px(c.e)-1.2} ${py(c.v)}H${px(c.e)+1.2}M${px(c.e)} ${py(c.v)-1.8}V${py(c.v)+1.8}" stroke="#1C1B18" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+    list.forEach((s,i)=>{const x=X(s.e),y=Y(s.v);placed.push([x-7,y-7,14,14]);h+=`<button class="dot foot pop" data-pick="${s.id}" style="left:${px(s.e)}%;top:${py(s.v)}%;animation-delay:${i*40}ms" aria-label="${esc(s.t)}"></button>`});
+    list.forEach((s,i)=>{const x=X(s.e),y=Y(s.v);const p=place(x,y,tw(s.t,12),18,['r','l','t','b']);if(p)h+=`<div class="lbl pop" style="font-size:12px;line-height:18px;left:${p[0]}px;top:${p[1]}px;animation-delay:${i*40+60}ms">${esc(s.t)}</div>`});
+  }else if(S.mapRoute){
+    const list=S.mapRoute.map(id=>BYID[id]);
+    sv+=`<polyline points="${list.map(s=>px(s.e)+','+py(s.v)).join(' ')}" fill="none" stroke="#1C1B18" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`;
+    list.forEach((s,i)=>{const x=X(s.e),y=Y(s.v);placed.push([x-12,y-12,24,24]);h+=`<button class="pin" data-pick="${s.id}" style="left:${px(s.e)}%;top:${py(s.v)}%" aria-label="${esc(s.t)}">${i+1}</button>`});
+    list.forEach(s=>{const p=place(X(s.e),Y(s.v),tw(s.t,13),20,['r','l','t','b']);if(p)h+=`<div class="lbl" style="left:${p[0]}px;top:${p[1]}px">${esc(s.t)}</div>`});
+  }else if(S.click){
+    const {e,v}=S.click,mx=X(e),my=Y(v);const fresh=Date.now()-(S.anim||0)<400;
+    placed.push([mx-20,my-20,40,40]);
+    [80,160,240].forEach((r,i)=>{h+=`<div class="ripple" style="left:${px(e)}%;top:${py(v)}%;width:${r}px;height:${r}px;margin:-${r/2}px;opacity:${1-i*.3};animation-delay:${fresh?i*120:0}ms;${fresh?'':'animation:none'}"></div>`});
+    h+=`<div class="ghost" style="left:${px(-e)}%;top:${py(-v)}%"></div>`;
+    sv+=`<line x1="${px(e)}" y1="${py(v)}" x2="${px(-e)}" y2="${py(-v)}" stroke="#1C1B18" stroke-width="1" stroke-dasharray="2 6" opacity=".35" vector-effect="non-scaling-stroke"/>`;
+    S.near.forEach((n,i)=>{const s=n.s,main=s.id===S.sel;sv+=`<line x1="${px(e)}" y1="${py(v)}" x2="${px(s.e)}" y2="${py(s.v)}" stroke="#1C1B18" stroke-width="${main?2:1}" stroke-opacity="${main?1:.55}" vector-effect="non-scaling-stroke"/>`});
+    S.near.forEach((n,i)=>{const s=n.s,main=s.id===S.sel;const x=X(s.e),y=Y(s.v);placed.push([x-9,y-9,18,18]);h+=`<button class="dot ${main?'main':'alt'} ${fresh?'pop':''}" data-pick="${s.id}" style="left:${px(s.e)}%;top:${py(s.v)}%;animation-delay:${200+i*80}ms" aria-label="${esc(s.t)}"></button>`});
+    const sel=S.near.find(n=>n.s.id===S.sel);
+    if(sel){const s=sel.s,w=Math.max(150,s.t.length*13+30);const p=place(X(s.e),Y(s.v),w,58,['br','bl','b','r','l','t']);if(p)h+=`<button class="card ${fresh?'pop':''}" data-pick="${s.id}" style="left:${p[0]}px;top:${p[1]}px;animation-delay:420ms"><span class="k">${sel===S.near[0]?'最接近':'已选'} · 距离 ${sel.d.toFixed(2)}</span><span class="t">${esc(s.t)}</span></button>`}
+    S.near.forEach((n,i)=>{const s=n.s;if(s.id===S.sel)return;const t=s.t;const p=place(X(s.e),Y(s.v),tw(t,13)+34,20,['r','l','t','b']);if(p)h+=`<button class="lbl ${fresh?'pop':''}" data-pick="${s.id}" style="left:${p[0]}px;top:${p[1]}px;animation-delay:${260+i*80}ms">${esc(t)}<span class="d">${n.d.toFixed(2)}</span></button>`});
+    if(!hintDone()){hl:for(const alt of S.near.filter(n=>n.s.id!==S.sel)){const x=X(alt.s.e),y=Y(alt.s.v),w=9*12.5+24;for(const d of ['t','b','l','r']){const q=place(x,y,w,30,[d]);if(q){h+=`<div class="nhint h${d}" style="left:${q[0]+(d==='r'?6:d==='l'?-6:0)}px;top:${q[1]+(d==='t'?-6:d==='b'?6:0)}px;animation-delay:${fresh?900:0}ms,${fresh?1400:500}ms">点白点，换一首听听</div>`;break hl}}}}
+    h+=`<div class="marker" style="left:${px(e)}%;top:${py(v)}%;background:${tint(e,v,.6)}"></div>`;
+    const gx=X(-e),gy=Y(-v);const gp=place(gx,gy,120,18,['r','l','t','b']);if(gp)h+=`<div class="lbl" style="left:${gp[0]}px;top:${gp[1]}px;font-weight:500;font-size:12px;line-height:18px">另一面</div>`;
+  }
+  L.innerHTML=h;V.innerHTML=sv;
+}
+function convex(P){if(P.length<3)return P;P=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);const lo=[],up=[];for(const p of P){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}for(const p of P.reverse()){while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}up.pop();lo.pop();return lo.concat(up)}
+function centroid(l){return {e:l.reduce((a,s)=>a+s.e,0)/l.length,v:l.reduce((a,s)=>a+s.v,0)/l.length}}
+
+function renderMapPanel(){
+  const P=$('#panel');let h='';
+  if(S.draw){
+    const d=S.draw;
+    h+=`<div class="sec"><p class="lab">画一条情绪路线</p><p style="margin:0;font-size:14px;line-height:1.7">在地图上点两下：第一下是起点，第二下是终点。路线经过的地方会依次挑出最接近的歌，排成一份慢慢过渡的歌单。</p>
+      <div class="seg" role="group" aria-label="歌单长度">${[5,8,12].map(n=>`<button data-n="${n}" aria-pressed="${(d.n||8)===n}">${n} 首</button>`).join('')}</div></div>`;
+    if(d.stage==='done'){h+=`<div class="sec"><p class="lab">歌单 · ${d.list.length} 首</p>${d.list.map((s,i)=>`<button class="row" data-goto="${s.id}" style="grid-template-columns:22px 12px minmax(0,1fr) auto"><span class="mono" style="font-size:12px">${i+1}</span><i class="sw" style="background:${colorAt(s.e,s.v)}"></i><span>${esc(s.t)}</span><span class="mono" style="font-size:11px;color:var(--ink2)">${s.y}</span></button>`).join('')}</div>`}
+    else h+=`<div class="sec"><p class="note">${d.stage==='a'?'等待起点…':'已选起点 A，等待终点…'}</p></div>`;
+  }else if(S.foot){
+    const list=CRE[S.foot].map(x=>BYID[x.id]),c=centroid(list);
+    h+=`<div class="sec"><p class="lab">创作者足迹</p><h2 style="margin:4px 0 0;font-size:34px;line-height:1.05">${esc(S.foot)}</h2><p style="margin:0;font-size:14px;color:var(--ink2)">${MEMBERS.has(S.foot)?'BTS 成员':'非成员'} · 参与 ${list.length} 首</p>
+      <p style="margin:6px 0 0;font-size:15px;line-height:1.6">这些歌的重心在 <b>${desc(c.e,c.v)}</b>。十字是平均位置，虚线圈出覆盖的范围。</p></div>
+      <div class="sec"><p class="lab">参与的歌 · 点击在地图上定位</p>${list.map(s=>`<button class="row" data-goto="${s.id}" style="grid-template-columns:12px minmax(0,1fr) auto"><i class="sw" style="background:${colorAt(s.e,s.v)}"></i><span>${esc(s.t)}</span><span class="mono" style="font-size:11px;color:var(--ink2)">${s.y}</span></button>`).join('')}</div>
+      <div class="sec"><button class="btn big" id="backDna">回到创作图谱 <span>←</span></button></div>`;
+  }else if(S.mapRoute){
+    const list=S.mapRoute.map(id=>BYID[id]);
+    h+=`<div class="sec"><p class="lab">这条路线也是一份歌单</p>${list.map((s,i)=>`<button class="row" data-goto="${s.id}" style="grid-template-columns:22px 12px minmax(0,1fr) auto"><span class="mono" style="font-size:12px">${i+1}</span><i class="sw" style="background:${colorAt(s.e,s.v)}"></i><span>${esc(s.t)}</span><span class="mono" style="font-size:11px;color:var(--ink2)">${desc(s.e,s.v)}</span></button>`).join('')}</div>
+      <div class="sec"><button class="btn big" id="backRoute">回到歌曲连线 <span>←</span></button></div>`;
+  }else if(S.click&&S.sel){
+    const s=BYID[S.sel];
+    h+=`<div style="padding:26px 26px 24px;background:linear-gradient(180deg,${tint(s.e,s.v,.35)},${tint(s.e,s.v,0)})"><p class="lab">${S.sel===S.near[0].s.id?'最接近的歌':'你选的歌'}</p>
+      <h2 class="serif" style="margin:10px 0 0;font-size:${s.t.length>14?40:54}px;line-height:1">${esc(s.t)}</h2>
+      ${s.k?`<p style="margin:8px 0 0;font-size:15px">${esc(s.k)}</p>`:''}
+      <p class="mono" style="margin:6px 0 0;font-size:12px;color:var(--ink2)">${s.y} · ${esc(s.al)}</p></div>
+      <div class="sec" style="border-top:0;padding-top:0"><button class="btn p big" id="toMix"><span><span>${S.mix.list.includes(s.id)?'已在我的专辑里':'加入我的专辑'}</span><span class="sub">${S.mix.list.length}/7 · 挑 7 首歌，生成一张专辑封面</span></span><span>${S.mix.list.includes(s.id)?'✓':'＋'}</span></button>
+      <a class="btn big" href="${listen(s.t)}" target="_blank" rel="noopener">去 QQ 音乐试听 <span>↗</span></a></div>
+      <div class="sec"><div style="display:flex;justify-content:space-between;align-items:baseline"><p class="lab">附近的歌</p><span class="mono" style="font-size:10px;color:var(--ink2)">距离 0 — 0.5</span></div>
+      <div>${S.near.map(n=>`<button class="row" data-sel="${n.s.id}" ${n.s.id===S.sel?'aria-current="true" style="font-weight:700"':''}><i class="sw" style="background:${colorAt(n.s.e,n.s.v)}"></i><span>${esc(n.s.t)}</span><span class="trk"><i style="left:${Math.min(100,n.d/.5*100)}%"></i></span><span class="num">${n.d.toFixed(2)}</span></button>`).join('')}</div></div>
+      ${creditsBlock(s)}${styleRecsBlock(s)}
+      <div style="margin-top:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--rule)">
+      <button id="oppBtn" style="padding:16px 20px;text-align:left;border-right:1px solid var(--rule)"><b style="display:block;font-size:14px">↺ 另一面</b><span style="font-size:12px;color:var(--ink2)">跳到听感相反的位置</span></button>
+      <button id="drawBtn" style="padding:16px 20px;text-align:left"><b style="display:block;font-size:14px">⟋ 画一条路线</b><span style="font-size:12px;color:var(--ink2)">从一种感觉过渡到另一种</span></button></div>`;
+  }else{
+    h+=`<div class="sec"><p class="lab">不知道点哪里？</p><button class="btn p big" id="rndBtn">随机点一下 <span>◎</span></button>
+      <label class="fld" style="height:48px"><span class="sr">搜索歌名</span><input id="search" list="songlist" placeholder="从一首歌开始" style="font-size:18px" autocomplete="off"></label>
+      <button class="btn big" id="drawBtn">画一条情绪路线 <span>⟋</span></button></div>
+      <div class="sec"><p class="lab">地图怎么看</p>
+      ${[['横轴','越往右越热烈，越往左越舒缓（看节奏和编曲力度）'],['纵轴','越往上越明亮，越往下越忧郁（看听完的心情）'],['圆环','离中心越远，感觉越强烈'],['点击','出现最接近的 1 首歌和附近 5 首']].map(r=>`<div style="display:flex;gap:12px;font-size:14px;line-height:1.6"><span class="mono" style="flex:none;width:36px;color:var(--ink2)">${r[0]}</span><span>${r[1]}</span></div>`).join('')}</div>
+      <div class="sec"><p class="lab">目前收录</p><p style="margin:0;display:flex;align-items:baseline;gap:10px"><span class="serif" style="font-size:56px;line-height:1">${SONGS.length}</span><span>首歌 · 第一版数据</span></p>
+      <p class="note">署名资料来自 Melon、维基百科和韩国音乐著作权协会（KOMCA）。</p>
+      <button class="switch" role="switch" id="allSw" aria-checked="${S.showAll}"><span></span>显示全部歌曲</button></div>
+      <div class="sec" style="margin-top:auto"><p class="note">BORAMAP 是非官方粉丝项目，不播放音乐，试听会打开 QQ 音乐。</p></div>`;
+  }
+  P.innerHTML=h;
+  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
+  on('rndBtn',randomPick);
+  on('allSw',()=>{S.showAll=!S.showAll;render()});
+  on('toMix',()=>{const id=S.sel,L=S.mix.list;if(L.includes(id)){go('mix');return}if(L.length>=7){go('mix');return}L.push(id);renderMapPanel()});
+  on('oppBtn',()=>{const {e,v}=S.click;pickAt(-e,-v)});
+  on('drawBtn',()=>{S.draw={stage:'a',n:8};render()});
+  on('backDna',()=>{S.foot=null;go('dna')});
+  on('backRoute',()=>{S.mapRoute=null;go('route')});
+  P.querySelectorAll('[data-sel]').forEach(b=>b.onclick=()=>{if(b.dataset.sel!==S.sel)setHintDone();S.sel=b.dataset.sel;renderMapPanel();drawMapLayer()});
+  P.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>{const s=BYID[b.dataset.goto];S.draw=null;S.foot=null;S.mapRoute=null;pickAt(s.e,s.v,s.id)});
+  P.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{const d=S.draw;d.n=+b.dataset.n;if(d.stage==='done')d.list=playlist(d.a,d.b,d.n);render()});
+  const se=$('#search');if(se)combo(se,SONG_ITEMS,it=>{const s=BYID[it.id];pickAt(s.e,s.v,s.id)});
+}
+
+/* ===== 创作图谱 ===== */
+function creatorsOf(id,hide){return BYID[id].cr.filter(c=>!(hide&&MEMBERS.has(c.n)))}
+function recsFor(id){const mine=new Set(BYID[id].cr.filter(c=>!MEMBERS.has(c.n)).map(c=>c.n));return SONGS.filter(s=>s.id!==id).map(s=>({s,sh:s.cr.filter(c=>mine.has(c.n)).map(c=>c.n)})).filter(x=>x.sh.length).sort((a,b)=>b.sh.length-a.sh.length||a.s.y-b.s.y).slice(0,3)}
+function setCenter(id,from,creator){const D=S.dna;if(D.center&&D.center!==id)D.trail.push(D.center);D.center=id;D.creator=creator||null;D.from=from||{x:500,y:380};D.anim='all'}
+function dnaSearchBar(){return `<label class="fld" style="height:36px;width:240px;padding:0 10px;gap:8px"><span class="sr">换一首歌或创作者</span><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="none" stroke="#55524A" stroke-width="1.3"/><path d="M9.5 9.5L13 13" stroke="#55524A" stroke-width="1.3"/></svg><input id="dnaSearch" list="dnalist" placeholder="搜索歌曲或创作者" autocomplete="off" style="font-family:var(--f-ui);font-size:13px"></label>`}
+function bindDnaSearch(){const se=$('#dnaSearch');if(!se)return;combo(se,()=>SONG_ITEMS().concat(CREATOR_ITEMS()),it=>{if(it.kind==='song'){setCenter(it.id);render()}else{const l=CRE[it.id].map(x=>BYID[x.id]).sort((a,b)=>b.y-a.y);setCenter(l[0].id,null,it.id);render()}})}
+function renderDNAStart(){
+  const picks=PICKS.map(id=>BYID[id]);
+  $('#stage').innerHTML=`<div class="bar"><p class="lab">创作图谱</p>${dnaSearchBar()}</div>
+  <div class="netwrap" style="display:flex;align-items:center;justify-content:center"><div class="wash"></div>
+   <div style="position:relative;text-align:center;max-width:560px;padding:24px">
+    <h1 style="margin:0;font-size:30px;font-weight:900;text-wrap:balance">从一首歌开始，看看是谁写了它</h1>
+    <p style="margin:12px 0 22px;font-size:15px;line-height:1.7;color:var(--ink2)">选一首歌放在中心，就能看到它的作词、作曲、编曲和制作人，再顺着他们找到更多歌。也可以在右上角直接搜索创作者。</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">${picks.map(s=>`<button class="btn" data-start="${s.id}" style="gap:10px;background:#FBF9F4"><i class="sw" style="background:${colorAt(s.e,s.v)}"></i><span class="serif" style="font-size:19px">${esc(s.t)}</span></button>`).join('')}</div>
+    <button class="btn p" id="dnaRnd" style="margin-top:18px">随机一首 ⟳</button>
+   </div></div>`;
+  $('#panel').innerHTML=`<div class="sec"><p class="lab">怎么看创作图谱</p>
+   ${[['中心','你选的歌'],['内圈','这首歌的创作者，方块越粗表示选中'],['外圈','选中创作者写过的其他歌'],['点歌','把它移到中心，继续往外走'],['顶部','走过的路径，随时可以返回']].map(r=>`<div style="display:flex;gap:12px;font-size:14px;line-height:1.6"><span class="mono" style="flex:none;width:36px;color:var(--ink2)">${r[0]}</span><span>${r[1]}</span></div>`).join('')}</div>
+   <div class="sec"><p class="note">也可以在情绪地图上点一首推荐歌，再点“查看创作图谱”进来。</p></div>`;
+  bindDnaSearch();
+  document.querySelectorAll('[data-start]').forEach(b=>b.onclick=()=>{setCenter(b.dataset.start);render()});
+  $('#dnaRnd').onclick=()=>{setCenter(SONGS[Math.floor(Math.random()*SONGS.length)].id);render()};
+}
+function renderDNA(){
+  const D=S.dna;
+  if(!D.center){renderDNAStart();return}
+  const c=BYID[D.center];
+  let crs=creatorsOf(D.center,D.hide);
+  if(!crs.length){D.hide=false;crs=creatorsOf(D.center,false)}
+  if(!crs.length){$('#stage').innerHTML=`<div class="bar"><button class="btn" id="crBack">← 返回</button></div><div class="netwrap" style="display:flex;align-items:center;justify-content:center"><div class="wash"></div><p style="position:relative;max-width:420px;text-align:center;line-height:1.7">${esc(c.t)} 暂时没有署名资料，还在补充中。</p></div>`;$('#panel').innerHTML='';$('#crBack').onclick=()=>{D.center=D.trail.pop()||null;render()};return}
+  if(!D.creator||!crs.some(x=>x.n===D.creator)){const nm=crs.filter(x=>!MEMBERS.has(x.n));D.creator=(nm.length?nm:crs).slice().sort((a,b)=>CRE[b.n].length-CRE[a.n].length)[0].n}
+  const st=$('#stage');
+  const crumbs=`<nav class="crumbs" aria-label="浏览路径"><button id="crStart">全部</button>${D.trail.slice(-4).map((id,j)=>{const i=D.trail.length-Math.min(4,D.trail.length)+j;return `<span>›</span><button data-trail="${i}">${esc(BYID[id].t)}</button>`}).join('')}<span>›</span><b>${esc(c.t)}</b></nav>`;
+  st.innerHTML=`<div class="bar">${crumbs}<div class="seg">${dnaSearchBar()}<button id="dnaRnd2" title="随机换一首">⟳ 随机</button><button class="switch" role="switch" id="hideSw" aria-checked="${D.hide}" style="margin-left:6px;border:0"><span></span>隐藏成员</button></div></div>
+  <div class="netwrap"><div class="wash"></div><svg class="net" id="net" viewBox="0 0 1000 760" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(c.t)} 的创作图谱"></svg>
+  <div class="legend"><span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="#6F8F8C" stroke="#1C1B18" stroke-width="1.3"/></svg>歌曲（颜色 = 它在情绪地图上的位置）</span><span><svg width="14" height="14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" fill="#1C1B18"/></svg>BTS 成员</span><span><svg width="14" height="14" aria-hidden="true"><rect x="2.5" y="2.5" width="9" height="9" fill="none" stroke="#1C1B18" stroke-width="1.5"/></svg>其他创作者</span><span><svg width="14" height="14" aria-hidden="true"><path d="M1 7H13" stroke="#1C1B18" stroke-width="3.5"/></svg>线越粗，署名角色越多</span></div></div>`;
+  const CX=500,CY=380,R1=165,R2=310,n=crs.length;
+  const anim=D.anim||'none',from=D.from||{x:CX,y:CY};D.anim='none';
+  const pos={};crs.forEach((cr,i)=>{const a=-Math.PI/2+i*2*Math.PI/n+(n%2?0:Math.PI/n);pos[cr.n]={a,x:CX+R1*Math.cos(a),y:CY+R1*Math.sin(a)}});
+  const selP=pos[D.creator];
+  const others=CRE[D.creator].filter(x=>x.id!==D.center);const show=others.slice(0,others.length>6?5:6),more=others.length-show.length;
+  const step=0.22,items=show.length+(more>0?1:0);
+  const outer=[];for(let i=0;i<items;i++){const a=selP.a+(i-(items-1)/2)*step;outer.push({a,x:CX+R2*Math.cos(a),y:CY+R2*Math.sin(a)})}
+  const fromOf=kind=>anim==='all'?from:anim==='outer'&&kind==='outer'?{x:selP.x,y:selP.y}:null;
+  const node=(kind,x,y,inner,attrs)=>{const f=fromOf(kind);const s=f?`transform:translate(${f.x}px,${f.y}px) scale(.4);opacity:0`:`transform:translate(${x}px,${y}px)`;return `<g class="nd" ${attrs} data-to="${x},${y}" style="${s}">${inner}</g>`};
+  const lineFade=kind=>fromOf(kind)?'ln':'';
+  let g=`<circle cx="${CX}" cy="${CY}" r="${R1}" fill="none" stroke="rgba(28,27,24,.22)" stroke-dasharray="3 5"/><circle cx="${CX}" cy="${CY}" r="${R2}" fill="none" stroke="rgba(28,27,24,.15)" stroke-dasharray="3 5"/>`;
+  crs.forEach(cr=>{const p=pos[cr.n],sel=cr.n===D.creator;g+=`<g class="${lineFade('creator')}" data-edgeof="${esc(cr.n)}"><line x1="${CX}" y1="${CY}" x2="${p.x}" y2="${p.y}" stroke="${sel?'#1C1B18':'rgba(28,27,24,.45)'}" stroke-width="${(sel?1.6:1)*(0.6+cr.r.length*.7)}"/><line data-edge="${esc(cr.n)}" x1="${CX}" y1="${CY}" x2="${p.x}" y2="${p.y}" stroke="transparent" stroke-width="14"/></g>`});
+  g+=`<g class="${lineFade('outer')}">${outer.map(o=>`<line x1="${selP.x}" y1="${selP.y}" x2="${o.x}" y2="${o.y}" stroke="#1C1B18" stroke-width="1.6"/>`).join('')}</g>`;
+  show.forEach((x,i)=>{const s=BYID[x.id],o=outer[i];const cs=Math.cos(o.a),sn=Math.sin(o.a);const anc=cs>.25?'start':cs<-.25?'end':'middle';const lx=anc==='start'?17:anc==='end'?-17:0,ly=anc==='middle'?(sn<0?-20:32):6;
+    g+=node('outer',o.x,o.y,`<circle r="11" fill="${colorAt(s.e,s.v)}" stroke="#1C1B18" stroke-width="1.5"/><text class="nm" x="${lx}" y="${ly}" text-anchor="${anc}" font-family="Instrument Serif,serif" font-size="19" fill="#1C1B18">${esc(s.t)}</text>`,`data-song="${s.id}" data-x="${o.x}" data-y="${o.y}" tabindex="0" role="button" aria-label="以 ${esc(s.t)} 为中心"`)});
+  if(more>0){const o=outer[items-1];g+=node('outer',o.x,o.y,`<circle r="14" fill="#EEE9DF" stroke="#1C1B18" stroke-width="1.3" stroke-dasharray="3 3"/><text y="4" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="#1C1B18">+${more}</text>`,'data-more="1"')}
+  crs.forEach(cr=>{const p=pos[cr.n],sel=cr.n===D.creator,mem=MEMBERS.has(cr.n),sz=sel?22:18;const cs=Math.cos(p.a),sn=Math.sin(p.a);
+    let anc,lx,ly;if(Math.abs(cs)<.3){anc='middle';lx=0;ly=sn<0?-34:30}else{anc=cs>0?'start':'end';lx=cs>0?18:-18;ly=-4}
+    if(sel){let dx=-sn,dy=cs;if(dy<0){dx=-dx;dy=-dy}if(Math.abs(dx)>.5){anc=dx>0?'start':'end';lx=dx*22;ly=dy*22-2}else{anc='middle';lx=dx*20;ly=dy*20+14}}
+    const cnt=CRE[cr.n].length-1;
+    g+=node('creator',p.x,p.y,`<rect x="${-sz/2}" y="${-sz/2}" width="${sz}" height="${sz}" fill="${mem?'#1C1B18':'#EEE9DF'}" stroke="#1C1B18" stroke-width="${sel?3:1.5}"/><text class="nm" x="${lx}" y="${ly}" text-anchor="${anc}" font-family="Hanken Grotesk,sans-serif" font-size="${sel?17:15}" font-weight="700" fill="#1C1B18">${esc(cr.n)}</text><text x="${lx}" y="${ly+17}" text-anchor="${anc}" font-family="Noto Sans SC,sans-serif" font-size="11" fill="#55524A">${roles(cr.r)}${!sel&&cnt?' · 另有 '+cnt+' 首':''}</text>`,`data-creator="${esc(cr.n)}" tabindex="0" role="button" aria-label="查看 ${esc(cr.n)}"`)});
+  g+=node('center',CX,CY,`<circle r="34" fill="${colorAt(c.e,c.v)}" stroke="#1C1B18" stroke-width="2.5"/><circle r="4" fill="#1C1B18"/><text y="66" text-anchor="middle" font-family="Instrument Serif,serif" font-size="${c.t.length>14?24:30}" fill="#1C1B18">${esc(c.t)}</text><text y="86" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="#55524A">${c.y} · ${c.cr.length} 位创作者</text>`,'data-centernode="1"');
+  const net=$('#net');net.innerHTML=g;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{net.querySelectorAll('.nd').forEach(el=>{const [x,y]=el.dataset.to.split(',');el.style.transform=`translate(${x}px,${y}px)`;el.style.opacity=1});net.querySelectorAll('.ln').forEach(el=>el.classList.add('on'))}));
+  $('#crStart').onclick=()=>{D.center=null;D.trail=[];render()};
+  st.querySelectorAll('[data-trail]').forEach(b=>b.onclick=()=>{const i=+b.dataset.trail;D.center=D.trail[i];D.trail=D.trail.slice(0,i);D.creator=null;D.anim='all';D.from={x:500,y:380};render()});
+  $('#hideSw').onclick=()=>{D.hide=!D.hide;D.anim='all';D.from={x:500,y:380};render()};
+  $('#dnaRnd2').onclick=()=>{let s;do{s=SONGS[Math.floor(Math.random()*SONGS.length)]}while(s.id===D.center);setCenter(s.id);render()};
+  bindDnaSearch();
+  const act=t=>{const so=t.closest('[data-song]'),cr=t.closest('[data-creator]'),ed=t.closest('[data-edge]'),mo=t.closest('[data-more]');
+    if(so){setCenter(so.dataset.song,{x:+so.dataset.x,y:+so.dataset.y});render()}
+    else if(cr||ed){const nm=(cr||ed).dataset.creator||ed.dataset.edge;if(nm!==D.creator){D.creator=nm;D.anim='outer';render()}}
+    else if(mo){S.foot=D.creator;S.draw=null;S.mapRoute=null;go('map')}};
+  net.addEventListener('click',e=>act(e.target));
+  net.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act(e.target)}});
+  net.addEventListener('mouseover',e=>{const cr=e.target.closest('[data-creator]');net.querySelectorAll('[data-edgeof]').forEach(l=>l.classList.toggle('hl',!!cr&&l.dataset.edgeof===cr.dataset.creator))});
+  renderDNAPanel(crs);
+}
+function renderDNAPanel(crs){
+  const D=S.dna,c=BYID[D.center],nm=D.creator,list=CRE[nm],mem=MEMBERS.has(nm);
+  const rc={};list.forEach(x=>x.r.split('').forEach(r=>rc[r]=(rc[r]||0)+1));const top=Object.keys(rc).sort((a,b)=>rc[b]-rc[a]).slice(0,2).map(r=>ROLE[r]);
+  const songs=list.map(x=>BYID[x.id]),cen=centroid(songs);
+  const edge=crs.find(x=>x.n===nm);
+  const recs=recsFor(D.center);
+  let h=`<div class="sec"><p class="lab">已选创作者</p><h2 style="margin:4px 0 0;font-size:38px;line-height:1.05">${esc(nm)}</h2><p style="margin:0;font-size:14px;color:var(--ink2)">${mem?'BTS 成员':'非成员'}</p>
+  <p style="margin:6px 0 0;font-size:14px;line-height:1.6">在本数据集中参与 <b>${list.length}</b> 首歌，最常见的角色是<b>${top.join('</b>和<b>')}</b>。</p></div>
+  <div class="sec" style="padding-top:0;border-top:0"><button class="btn p big" id="footBtn"><span><span>在情绪地图上看他的足迹</span><span class="sub">这 ${list.length} 首歌分布在哪些感觉里</span></span><span>→</span></button>
+  <div class="mini" aria-hidden="true"><div class="field"></div><div class="axh"></div><div class="axv"></div>${songs.map(s=>`<span class="d" style="left:${px(s.e)}%;top:${py(s.v)}%"></span>`).join('')}<span style="position:absolute;right:6px;top:6px;font-size:11px;font-weight:700;background:rgba(244,240,232,.92);padding:2px 6px">重心：${desc(cen.e,cen.v)}</span></div></div>
+  <div class="sec"><p class="lab">喜欢 ${esc(c.t)} 的创作阵容？</p><p class="note" style="color:#3F3D37">这些歌和它有相同的创作者（不计成员），点歌名设为新的中心</p>
+  ${recs.length?recs.map(r=>`<button class="rec" data-rec="${r.s.id}"><b><i class="sw" style="background:${colorAt(r.s.e,r.s.v)}"></i>${esc(r.s.t)}</b><small>${r.sh.map(esc).join(' · ')}</small></button>`).join(''):'<p class="note">没有找到和它有相同非成员创作者的歌。</p>'}</div>
+  <div class="sec" style="margin-top:auto;background:var(--sunk)"><div style="display:flex;justify-content:space-between;align-items:center"><p class="lab">这条线的出处</p></div>
+  <p style="margin:2px 0 0;font-size:14px;font-weight:600">${esc(c.t)} × ${esc(nm)}</p>
+  <div><div class="kv"><span>署名角色</span><span>${edge?roles(edge.r):'—'}</span></div>
+  <div class="kv"><span>试听</span><a href="${listen(c.t)}" target="_blank" rel="noopener">在 QQ 音乐打开 ${esc(c.t)} ↗</a></div></div></div>`;
+  const P=$('#panel');P.innerHTML=h;
+  $('#footBtn').onclick=()=>{S.foot=nm;S.draw=null;S.mapRoute=null;go('map')};
+  P.querySelectorAll('[data-rec]').forEach(b=>b.onclick=()=>{D.trail.push(D.center);D.center=b.dataset.rec;D.creator=null;render()});
+}
+
+/* ===== 歌曲连线 ===== */
+function findPaths(a,b,hide,excl){
+  const ok=n=>!(hide&&MEMBERS.has(n))&&n!==excl;
+  const adj=k=>{if(k[0]==='s')return BYID[k.slice(2)].cr.filter(c=>ok(c.n)).map(c=>'c:'+c.n);return CRE[k.slice(2)].map(x=>'s:'+x.id)};
+  const A='s:'+a,B='s:'+b;if(a===b)return [];
+  const dist={[A]:0},par={[A]:[]},q=[A];let found=-1;
+  while(q.length){const u=q.shift();if(found>=0&&dist[u]>=found)break;for(const w of adj(u)){if(!(w in dist)){dist[w]=dist[u]+1;par[w]=[u];q.push(w);if(w===B)found=dist[w]}else if(dist[w]===dist[u]+1)par[w].push(u)}}
+  if(!(B in dist))return null;
+  const out=[];(function walk(n,acc){if(out.length>=12)return;if(n===A){out.push([A,...acc].map(k=>k));return}for(const p of par[n])walk(p,[n,...acc])})(B,[]);
+  return out;
+}
+function runRoute(){const R=S.route;R.paths=findPaths(R.a,R.b,R.hide,R.excl);R.i=0}
+function renderRoute(){
+  const R=S.route;if(R.paths===null&&R.a&&R.b&&!R.ran){runRoute();R.ran=true}
+  const st=$('#stage');const A=BYID[R.a],B=BYID[R.b];
+  let body='',foot='';
+  if(R.paths===null){const iso=s2=>s2.cr.every(c=>CRE[c.n].length===1);const why=iso(A)?A.t:iso(B)?B.t:null;body=`<div class="netwrap"><div class="wash"></div><div class="empty"><div><p style="margin:0 0 8px;font-size:20px;font-weight:900;color:var(--ink)">${esc(A.t)} 和 ${esc(B.t)} 之间找不到连接</p>${why?`<p style="margin:0">在演示数据里，${esc(why)} 的创作者没有参与其他 BTS 歌曲。</p>`:`<p style="margin:0">试试取消“隐藏 BTS 成员”或“排除创作者”。</p>`}</div></div></div>`}
+  else if(R.paths.length===0){body=`<div class="netwrap"><div class="empty">起点和终点是同一首歌，换一首试试。</div></div>`}
+  else{
+    const path=R.paths[R.i],k=path.length;const xs=path.map((_,i)=>110+i*(780/(k-1)));
+    let g=`<g fill="none" stroke="rgba(28,27,24,.2)" stroke-dasharray="3 6">${[110,210,310].map(r=>`<circle cx="110" cy="190" r="${r}"/><circle cx="890" cy="190" r="${r}"/>`).join('')}</g>`;
+    g+=`<polyline points="${path.map((n,i)=>xs[i]+','+(n[0]==='s'?190:370)).join(' ')}" fill="none" stroke="#1C1B18" stroke-width="3" stroke-linejoin="round"/>`;
+    path.forEach((n,i)=>{const x=xs[i];if(n[0]==='s'){const s=BYID[n.slice(2)];const fs=k>5&&s.t.length>12?20:s.t.length>16?24:30;const lab=i===0?'起点':i===k-1?'终点':'中转';
+      g+=`<g data-song="${s.id}" role="button" tabindex="0" aria-label="${esc(s.t)}，在创作图谱中打开"><text x="${x}" y="104" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="#55524A">${lab} · ${s.y}</text><text x="${x}" y="142" text-anchor="middle" font-family="Instrument Serif,serif" font-size="${fs}" fill="#1C1B18">${esc(s.t)}</text><circle cx="${x}" cy="190" r="${i===0||i===k-1?24:20}" fill="${colorAt(s.e,s.v)}" stroke="#1C1B18" stroke-width="2.5"/></g>`}
+      else{const nm=n.slice(2),mem=MEMBERS.has(nm);const sa=BYID[path[i-1].slice(2)],sb=BYID[path[i+1].slice(2)];const ra=sa.cr.find(c=>c.n===nm).r,rb=sb.cr.find(c=>c.n===nm).r;
+      g+=`<rect x="${x-14}" y="356" width="28" height="28" fill="${mem?'#1C1B18':'#EEE9DF'}" stroke="#1C1B18" stroke-width="2.5"/><text x="${x}" y="414" text-anchor="middle" font-family="Hanken Grotesk,sans-serif" font-size="18" font-weight="700" fill="#1C1B18">${esc(nm)}</text>
+      <text x="${x}" y="434" text-anchor="middle" font-family="Noto Sans SC,sans-serif" font-size="12" fill="#3F3D37">两首歌都有${mem?'他':'TA'}的署名</text>
+      <text x="${x}" y="452" text-anchor="middle" font-family="Noto Sans SC,sans-serif" font-size="11" fill="#55524A">${roles(ra)}｜${roles(rb)}</text>`}});
+    body=`<div class="netwrap"><div class="wash"></div><svg class="net" id="rsvg" viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid meet" role="img" aria-label="连线路径">${g}</svg><p class="note" style="position:absolute;left:0;bottom:4px">点歌名可在创作图谱中打开 · 虚线圆圈表示从两首歌同时向外查找</p></div>`;
+    const songs=path.filter(n=>n[0]==='s').map(n=>BYID[n.slice(2)]);
+    foot=`<div style="flex:none;display:flex;gap:22px;align-items:stretch;border-top:1px solid var(--rule);padding-top:16px;margin-top:10px;flex-wrap:wrap">
+      <div class="mini" style="width:220px;height:136px;flex:none" aria-hidden="true"><div class="field"></div><div class="axh"></div><div class="axv"></div><svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%"><polyline points="${songs.map(s=>px(s.e)+','+py(s.v)).join(' ')}" fill="none" stroke="#1C1B18" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>${songs.map(s=>`<span class="d" style="left:${px(s.e)}%;top:${py(s.v)}%;width:10px;height:10px;margin:-5px;background:${colorAt(s.e,s.v)};box-shadow:0 0 0 1.5px #1C1B18"></span>`).join('')}</div>
+      <div style="flex:1;min-width:220px;display:flex;flex-direction:column;justify-content:space-between;gap:10px"><div><p class="lab">这条路线也是一份歌单</p><p style="margin:6px 0 0;font-size:15px">从 <b>${desc(songs[0].e,songs[0].v)}</b> 走到 <b>${desc(songs[songs.length-1].e,songs[songs.length-1].v)}</b></p><p class="serif" style="margin:4px 0 0;font-size:22px">${songs.map(s=>esc(s.t)).join(' → ')}</p></div>
+      <div><button class="btn p" id="onMap">在情绪地图上看这条路线 →</button></div></div></div>`;
+  }
+  const many=R.paths&&R.paths.length>1;
+  st.innerHTML=`<div class="bar"><p class="lab">${R.paths&&R.paths.length?'路线 '+(R.i+1)+' / '+R.paths.length+(R.paths.length>=12?'+':''):'歌曲连线'}</p><div style="display:flex;gap:6px"><button class="btn q" id="prevP" aria-label="上一条路线" ${many?'':'disabled'} style="padding:8px 12px">←</button><button class="btn" id="nextP" aria-label="下一条路线" ${many?'':'disabled'} style="padding:8px 12px">→</button></div></div>${body}${foot}`;
+  const on=(id,f)=>{const el=document.getElementById(id);if(el)el.onclick=f};
+  on('prevP',()=>{R.i=(R.i-1+R.paths.length)%R.paths.length;render()});
+  on('nextP',()=>{R.i=(R.i+1)%R.paths.length;render()});
+  on('onMap',()=>{S.mapRoute=R.paths[R.i].filter(n=>n[0]==='s').map(n=>n.slice(2));S.draw=null;S.foot=null;go('map')});
+  const rs=$('#rsvg');if(rs){const act=t=>{const so=t.closest('[data-song]');if(so){S.dna.trail=[];S.dna.center=null;setCenter(so.dataset.song);go('dna')}};rs.addEventListener('click',e=>act(e.target));rs.addEventListener('keydown',e=>{if(e.key==='Enter'){act(e.target)}})}
+  renderRoutePanel();
+}
+function renderRoutePanel(){
+  const R=S.route,A=BYID[R.a],B=BYID[R.b];
+  const p=R.paths&&R.paths[R.i];const steps=p?(p.length-1)/2:0;
+  const direct=p&&p.length===3;
+  let res;
+  if(R.paths===null)res=`<p class="note" style="font-size:14px;color:var(--ink)">在当前条件下没有找到连接。</p>`;
+  else if(!p)res='';
+  else res=`<p style="margin:0;display:flex;align-items:baseline;gap:10px"><span class="serif" style="font-size:60px;line-height:1">${steps}</span><span style="font-size:16px;font-weight:700">步就能连上</span></p>
+    <p style="margin:0;font-size:14px;line-height:1.6">${direct?'这两首歌<b>有共同的创作者</b>，直接就能连上。':'这两首歌<b>没有共同的创作者</b>，需要经过 '+p.filter((n,i)=>n[0]==='s'&&i>0&&i<p.length-1).map(n=>'<b>'+esc(BYID[n.slice(2)].t)+'</b>').join('、')+' 才能连上。'}同样短的路线一共有 ${R.paths.length}${R.paths.length>=12?'+':''} 条。</p>`;
+  const P=$('#panel');
+  P.innerHTML=`<div class="sec"><p class="lab">歌曲连线</p><h1 style="margin:2px 0 0;font-size:26px;line-height:1.3;font-weight:900;text-wrap:balance">两首歌之间，<br>隔着哪些创作者？</h1></div>
+  <form class="sec" id="rform" style="border-top:0;padding-top:0">
+   <label class="fld"><span class="mono" style="font-size:11px;color:var(--ink2)">A</span><i class="sw" style="background:${colorAt(A.e,A.v)};width:14px;height:14px;flex:none"></i><span class="sr">起点歌曲</span><input id="ra" value="${esc(A.t)}" autocomplete="off" placeholder="输入或选择歌曲"></label>
+   <button type="button" class="btn q" id="swap" style="align-self:flex-end;padding:6px 12px;font-size:12px">⇅ 交换</button>
+   <label class="fld"><span class="mono" style="font-size:11px;color:var(--ink2)">B</span><i class="sw" style="background:${colorAt(B.e,B.v)};width:14px;height:14px;flex:none"></i><span class="sr">终点歌曲</span><input id="rb" value="${esc(B.t)}" autocomplete="off" placeholder="输入或选择歌曲"></label>
+   <label class="chk"><input type="checkbox" id="rhide" ${R.hide?'checked':''}><span>隐藏 BTS 成员<span style="display:block;font-size:12px;color:var(--ink2)">成员几乎参与了所有歌，隐藏后能找到更意外的连接</span></span></label>
+   <label style="display:flex;flex-direction:column;gap:6px;font-size:14px">排除某位创作者<select id="rexcl" style="height:40px;border:1px solid var(--rule);background:#FBF9F4;padding:0 8px"><option value="">不排除</option>${CNAMES.slice().sort().map(n=>`<option ${n===R.excl?'selected':''}>${esc(n)}</option>`).join('')}</select></label>
+   <button class="btn p big" type="submit">查找连接 <span>→</span></button>
+   <p class="note" id="rerr" hidden></p>
+  </form>
+  <div class="sec"><p class="lab">结果</p>${res}</div>
+  <div class="sec" style="margin-top:auto"><button class="btn big" id="rnd">随机两首歌，看看怎么连 <span>⟳</span></button></div>`;
+  combo($('#ra'),SONG_ITEMS,it=>{R.a=it.id;runRoute();render()});
+  combo($('#rb'),SONG_ITEMS,it=>{R.b=it.id;runRoute();render()});
+  $('#rform').addEventListener('submit',ev=>{ev.preventDefault();const a=findSong($('#ra').value),b=findSong($('#rb').value);if(!a||!b){const e=$('#rerr');e.hidden=false;e.textContent='没有找到这首歌，请从下拉列表里选择。';return}R.a=a.id;R.b=b.id;R.hide=$('#rhide').checked;R.excl=$('#rexcl').value;runRoute();render()});
+  $('#swap').onclick=()=>{[R.a,R.b]=[R.b,R.a];runRoute();render()};
+  $('#rnd').onclick=()=>{let a,b;do{a=SONGS[Math.floor(Math.random()*SONGS.length)];b=SONGS[Math.floor(Math.random()*SONGS.length)]}while(a===b);R.a=a.id;R.b=b.id;runRoute();render()};
+}
+
+/* ===== 可输入也可选择的下拉框 ===== */
+const SONG_ITEMS=()=>SONGS.slice().sort((a,b)=>a.y-b.y||a.t.localeCompare(b.t)).map(s=>({v:s.t,label:s.t,sub:s.y+' · '+s.al,color:colorAt(s.e,s.v),kind:'song',id:s.id,k:s.k}));
+const CREATOR_ITEMS=()=>CNAMES.slice().sort((a,b)=>CRE[b].length-CRE[a].length).map(n=>({v:n,label:n,sub:(MEMBERS.has(n)?'BTS 成员':'创作者')+' · '+CRE[n].length+' 首',kind:'creator',id:n}));
+let comboClose=null;
+function combo(input,items,onPick){
+  input.removeAttribute('list');input.setAttribute('role','combobox');input.setAttribute('aria-autocomplete','list');input.setAttribute('aria-expanded','false');
+  const host=input.closest('.fld');host.classList.add('combo');
+  const tg=document.createElement('button');tg.type='button';tg.className='combo-tg';tg.setAttribute('aria-label','展开全部选项');tg.textContent='▾';host.appendChild(tg);
+  const box=document.createElement('div');box.className='combo-list';box.setAttribute('role','listbox');box.hidden=true;host.appendChild(box);
+  let cur=-1,shown=[];
+  const draw=(q)=>{q=(q||'').trim().toLowerCase();const all=items();shown=q?all.filter(it=>(it.label+' '+(it.k||'')+' '+it.sub).toLowerCase().includes(q)):all;cur=shown.length?0:-1;
+    const head=q?`<p class="combo-h">${shown.length} 个结果</p>`:`<p class="combo-h">全部 ${shown.length} 项 · 也可以直接输入</p>`;
+    box.innerHTML=head+(shown.length?shown.map((it,i)=>`<button type="button" role="option" data-i="${i}" class="${i===cur?'on':''}">${it.kind==='song'?`<i class="sw" style="background:${it.color}"></i>`:`<i class="sq ${MEMBERS.has(it.id)?'m':''}"></i>`}<span class="cl">${esc(it.label)}</span><span class="cs">${esc(it.sub)}</span></button>`).join(''):'<p class="combo-h">没有匹配的歌曲，换个关键词试试</p>');
+    box.hidden=false;input.setAttribute('aria-expanded','true');if(comboClose&&comboClose!==close)comboClose();comboClose=close};
+  const close=()=>{box.hidden=true;input.setAttribute('aria-expanded','false');if(comboClose===close)comboClose=null};
+  const pick=i=>{const it=shown[i];if(!it)return;input.value=it.v;close();onPick(it)};
+  const mark=()=>box.querySelectorAll('[data-i]').forEach(b=>{const on=+b.dataset.i===cur;b.classList.toggle('on',on);if(on)b.scrollIntoView({block:'nearest'})});
+  input.addEventListener('focus',()=>{input.select();draw('')});
+  input.addEventListener('input',()=>draw(input.value));
+  input.addEventListener('keydown',e=>{if(box.hidden&&e.key==='ArrowDown'){draw(input.value);return}
+    if(e.key==='ArrowDown'){e.preventDefault();cur=Math.min(shown.length-1,cur+1);mark()}else if(e.key==='ArrowUp'){e.preventDefault();cur=Math.max(0,cur-1);mark()}else if(e.key==='Enter'){if(!box.hidden&&cur>=0){e.preventDefault();pick(cur)}}else if(e.key==='Escape'){close()}});
+  box.addEventListener('mousedown',e=>e.preventDefault());
+  box.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const b=e.target.closest('[data-i]');if(b)pick(+b.dataset.i)});
+  tg.addEventListener('mousedown',e=>e.preventDefault());
+  tg.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(box.hidden){input.focus();draw('')}else close()});
+  input.addEventListener('blur',()=>setTimeout(close,120));
+}
+document.addEventListener('click',e=>{if(comboClose&&!e.target.closest('.combo'))comboClose()});
+
+/* ===== 启动 ===== */
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(S.view==='map')drawMapLayer()},120)});
+S.route.paths=null;
+render();
+</script>
+</body></html>
